@@ -375,8 +375,8 @@
     const tiles = $('tiles');
     tiles.textContent = '';
     const computed = R.filter(r => r.state === 'computed');
-    const steady = R.filter(r => isNum(r.wmape) && (r.xyz === 'X' || r.xyz === 'Y'));
-    const acc = (steady.length > 0 ? steady : R.filter(r => isNum(r.wmape))).map(r => r.wmape);
+    const steady = R.filter(r => isNum(r.wmapeWeek) && (r.xyz === 'X' || r.xyz === 'Y'));
+    const acc = (steady.length > 0 ? steady : R.filter(r => isNum(r.wmapeWeek))).map(r => r.wmapeWeek);
     tiles.appendChild(tile(t('t_products'), nf0.format(R.length), t('t_productsSub', { n: nf0.format(computed.length) })));
     if (M.hasStock) {
       const toOrder = R.filter(r => r.status === 'order');
@@ -469,7 +469,7 @@
     { id: 'cls', left: true, get: r => (r.abc || '') + (r.xyz || ''), text: true },
     { id: 'meanDaily', get: r => r.meanDaily, f: nf1 },
     { id: 'fc30', get: r => r.fc30 },
-    { id: 'wmape', get: r => r.wmape, pct: true },
+    { id: 'wmapeWeek', get: r => r.wmapeWeek, pct: true },
     { id: 'reorderPoint', get: r => r.reorderPoint },
     { id: 'onHand', get: r => r.onHand, stock: true },
     { id: 'coverDays', get: r => r.coverDays, stock: true },
@@ -588,7 +588,8 @@
     else why = t('whyModel', { m: methodName(r.method), n: r.origins || '—', e: pct(r.wmape), b: pct(r.baselineWmape) });
     c.appendChild(el('p', { text: why }));
     if (r.xyz === 'Z' || (isNum(r.demandFrequency) && r.demandFrequency < 0.3)) c.appendChild(el('p', { class: 'sg-muted', text: t('sparse') }));
-    c.appendChild(kv([[t('k_meanDaily'), num(r.meanDaily, nf1)], [t('k_fc30'), num(r.fc30)], [t('k_method'), methodName(r.method)], [t('k_error'), pct(r.wmape)]]));
+    c.appendChild(kv([[t('k_meanDaily'), num(r.meanDaily, nf1)], [t('k_fc30'), num(r.fc30)], [t('k_method'), methodName(r.method)], [t('k_errorWeek'), pct(r.wmapeWeek)], [t('k_error'), pct(r.wmape)]]));
+    if (isNum(r.wmapeWeek)) c.appendChild(el('p', { class: 'sg-muted sg-small', text: t('errorNote', { n: r.weekBlocks }) }));
 
     c.appendChild(el('h4', { text: t('d_params') }));
     if (r.state === 'computed') {
@@ -682,7 +683,7 @@
     lines.push(t('x_header'));
     state.results.forEach(r => {
       lines.push([q(r.sku), q(r.loc), q(t('s_' + r.status)), q((r.abc || '') + (r.xyz || '')), n(r.meanDaily), n(r.fc30), q(methodName(r.method)),
-        n(r.wmape === null ? null : r.wmape * 100), n(r.csl === null ? null : r.csl * 100), n(r.leadTime), n(r.safetyStock), n(r.reorderPoint),
+        n(r.wmapeWeek === null ? null : r.wmapeWeek * 100), n(r.wmape === null ? null : r.wmape * 100), n(r.csl === null ? null : r.csl * 100), n(r.leadTime), n(r.safetyStock), n(r.reorderPoint),
         n(r.orderUpTo), n(r.onHand), n(r.onOrder), n(r.coverDays), n(r.stock ? r.stock.zero90 : null), n(r.order ? r.order.qty : null), n(r.order ? r.order.value : null),
         q(r.limit ? t(r.limit.within ? 'sign_in' : 'sign_out') : ''), n(r.excessUnits), n(r.excessValue), q(r.state === 'computed' ? '' : reasonText(r.reason))].join(';'));
     });

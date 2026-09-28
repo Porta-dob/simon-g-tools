@@ -94,6 +94,16 @@ const out = SGCore.run(input, SimonEngine, SGParse);
     'rows', sample.moves.length - 1);
 }
 
+// 5b. the weekly error is measured, and is not above the daily one for steady sellers
+{
+  const withWeek = out.results.filter(r => typeof r.wmapeWeek === 'number');
+  ok('weekly error: measured for most products', withWeek.length >= out.results.length * 0.8, withWeek.length);
+  ok('weekly error: between 0 and the daily error', withWeek.every(r => r.wmapeWeek >= 0 && r.wmapeWeek <= r.wmape + 1e-9), withWeek.filter(r => r.wmapeWeek > r.wmape).map(r => [r.sku, r.wmape, r.wmapeWeek]));
+  const steady = withWeek.filter(r => r.xyz === 'X' || r.xyz === 'Y');
+  const med = a => { const s = a.slice().sort((x, y) => x - y); return s[s.length >> 1]; };
+  console.log('weekly error: median daily', (med(steady.map(r => r.wmape)) * 100).toFixed(0) + '%', '-> median weekly', (med(steady.map(r => r.wmapeWeek)) * 100).toFixed(0) + '%', 'on', steady.length, 'steady products');
+}
+
 // 6. no limit written means every order needs a signature
 {
   const s2 = Object.assign({}, settings, { limit: { classes: ['A', 'B', 'C'], maxValue: null } });

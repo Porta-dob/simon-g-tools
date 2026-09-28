@@ -134,6 +134,26 @@
     return holes;
   }
 
+  /** Forecast error over blocks of seven test days, from the engine's own day-by-day test errors.
+   *  Within a block the errors of single days cancel out in part, as they do in a real week.
+   *  The total of actual sales is recovered from the daily figure: daily error = sum of |error| / sum of actual. */
+  function weeklyError(fc) {
+    const daily = fc.accuracy.wmape;
+    const groups = fc.errorSd && fc.errorSd.errorsByOrigin;
+    if (typeof daily !== 'number' || !(daily > 0) || !Array.isArray(groups) || groups.length === 0) return null;
+    let absDaily = 0, absWeekly = 0, blocks = 0;
+    for (const g of groups) {
+      for (let i = 0; i < g.length; i += 7) {
+        let s = 0;
+        for (let j = i; j < Math.min(g.length, i + 7); j++) { s += g[j]; absDaily += Math.abs(g[j]); }
+        absWeekly += Math.abs(s);
+        blocks++;
+      }
+    }
+    if (blocks === 0 || absDaily === 0) return null;
+    return { value: absWeekly / (absDaily / daily), blocks };
+  }
+
   /** Stock at the end of each day, from the opening balance forward. */
   function rebuildStock(s, open, lastDay) {
     if (!open) return null;
@@ -245,6 +265,7 @@
       const fc30 = fcDaily.slice(0, 30).reduce((a, b) => a + b, 0);
       const fcMean = fcDaily.length > 0 ? fcDaily.reduce((a, b) => a + b, 0) / fcDaily.length : null;
 
+      const week = weeklyError(r.forecast);
       const fileStock = p && typeof p.onHand === 'number';
       const onHand = fileStock ? p.onHand : (stock !== null ? stock.current : null);
       const stockWeekly = stock === null ? [] : weekly([...stock.onHand.entries()].filter(e => e[0] > lastDay - 728).map(e => ({ day: e[0], qty: e[1] })))
@@ -258,6 +279,7 @@
         meanDaily: r.demandMeanDaily, fc30: periods.length > 0 ? fc30 : null, fcMeanDaily: fcMean,
         method: r.forecast.method, forecastState: r.forecast.state,
         wmape: r.forecast.accuracy.wmape, baselineWmape: r.forecast.accuracy.baselineWmape,
+        wmapeWeek: week ? week.value : null, weekBlocks: week ? week.blocks : 0,
         origins: r.forecast.accuracy.originsScored,
         csl: r.service.csl, leadTime: leadMean, leadFrom: fileLead ? 'file' : 'assumption',
         safetyStock: r.safetyStock, reorderPoint: r.reorderPoint, orderUpTo: r.orderUpTo,
@@ -355,9 +377,9 @@
       return { id, count: a.length, days: sum(a, r => r.stock.zero90), rows: top(a, r => r.stock.zero90, 5).map(r => r.key), status: '', sort: ['zero90', -1] };
     }
     if (id === 'weak') {
-      const a = results.filter(r => num(r.wmape) && (r.abc === 'A' || r.abc === 'B'));
-      const worst = top(a, r => r.wmape, 5);
-      return { id, count: a.length, worst: worst.length ? worst[0].wmape : null, rows: worst.map(r => r.key), status: '', sort: ['wmape', -1] };
+      const a = results.filter(r => num(r.wmapeWeek) && (r.abc === 'A' || r.abc === 'B'));
+      const worst = top(a, r => r.wmapeWeek, 5);
+      return { id, count: a.length, worst: worst.length ? worst[0].wmapeWeek : null, rows: worst.map(r => r.key), status: '', sort: ['wmapeWeek', -1] };
     }
     if (id === 'sign') {
       const a = results.filter(r => r.status === 'order' && r.limit);
