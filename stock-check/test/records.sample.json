@@ -1,0 +1,420 @@
+[
+ {
+  "record_id": "2026-08-31-00001",
+  "schema_version": "0.1",
+  "class": "Replenishment order",
+  "charter_version": "not recorded",
+  "subject": {
+   "product": "P-1002",
+   "location": "MAIN"
+  },
+  "proposer": {
+   "kind": "algorithm",
+   "name": "Simon G. planning engine",
+   "version": "test"
+  },
+  "inputs": {
+   "data_as_of": "2026-08-31T00:00:00Z",
+   "sources": [
+    "movements"
+   ],
+   "absent": [
+    {
+     "input": "fixed order days",
+     "consequence": "not recorded; no default was used in its place"
+    },
+    {
+     "input": "supplier minimum order value",
+     "consequence": "not recorded; no default was used in its place"
+    },
+    {
+     "input": "price breaks",
+     "consequence": "not recorded; no default was used in its place"
+    },
+    {
+     "input": "measured forecast error",
+     "consequence": "not recorded; no default was used in its place"
+    },
+    {
+     "input": "reserved stock",
+     "consequence": "not recorded; no default was used in its place"
+    }
+   ]
+  },
+  "current": {
+   "on_hand": 66,
+   "on_order": 132
+  },
+  "proposed": {
+   "order_quantity": 132,
+   "order_date": "2026-08-31",
+   "expected_arrival": "2026-09-07"
+  },
+  "evidence": {
+   "reasoning": "Order 132",
+   "steps": [
+    {
+     "step": "net_need",
+     "change": 243.945492,
+     "quantity": 243.945492
+    },
+    {
+     "step": "safety_stock",
+     "change": 82.118119,
+     "quantity": 326.063611
+    },
+    {
+     "step": "position",
+     "change": -198,
+     "quantity": 128.063611
+    },
+    {
+     "step": "rounding",
+     "change": 3.936389,
+     "quantity": 132
+    }
+   ],
+   "limits": [
+    "Promotion uplift is not computable: 0 distinct uncensored promotion(s) observed, 2 required. No uplift is applied to any planned promotion — the forecast for a promotion day is the ordinary baseline.",
+    "Holiday effect is not computable: 0 non-promotion holiday(s) observed, 3 required. A planned holiday is forecast at its ordinary baseline.",
+    "Annual seasonality was dropped: 12.0 month(s) of history is below the 24-month minimum.",
+    "Accuracy and the error spread leave out 56 holdout day(s) on which a stockout censored sales: on those days the figure to compare against is not demand. The incumbent is scored on exactly the same days.",
+    "The holdout shows a persistent under-forecast of 14.3%, above the 10% alert threshold — read the level before trusting the safety stock derived from it.",
+    "order_weekdays_not_recorded_review_period_factor_used",
+    "sigma_from_demand_and_lead_time_variance_not_forecast_error",
+    "reserved_not_recorded_treated_as_none_reserved",
+    "no_ordering_cost_configured_no_economic_order_quantity_floor_applied",
+    "no_price_breaks_recorded_unit_cost_used_as_given"
+   ],
+   "expected_effect": {
+    "amount": 976.8,
+    "currency": "EUR",
+    "basis": "purchase value at unit cost"
+   }
+  },
+  "limit_check": {
+   "within_limit": true,
+   "limit_ref": "Replenishment order: classes B, C up to 5000",
+   "acted_alone": false
+  },
+  "status": "proposed",
+  "decisions": [],
+  "perimeter": {
+   "data_left_perimeter": false
+  },
+  "created_at": "2026-09-28T00:00:00Z"
+ },
+ {
+  "record_id": "2026-08-31-00002",
+  "schema_version": "0.1",
+  "class": "Replenishment order",
+  "charter_version": "not recorded",
+  "subject": {
+   "product": "P-1007",
+   "location": "MAIN"
+  },
+  "proposer": {
+   "kind": "algorithm",
+   "name": "Simon G. planning engine",
+   "version": "test"
+  },
+  "inputs": {
+   "data_as_of": "2026-08-31T00:00:00Z",
+   "sources": [
+    "movements"
+   ],
+   "absent": [
+    {
+     "input": "fixed order days",
+     "consequence": "not recorded; no default was used in its place"
+    },
+    {
+     "input": "supplier minimum order value",
+     "consequence": "not recorded; no default was used in its place"
+    },
+    {
+     "input": "price breaks",
+     "consequence": "not recorded; no default was used in its place"
+    },
+    {
+     "input": "measured forecast error",
+     "consequence": "not recorded; no default was used in its place"
+    },
+    {
+     "input": "reserved stock",
+     "consequence": "not recorded; no default was used in its place"
+    }
+   ]
+  },
+  "current": {
+   "on_hand": 324,
+   "on_order": 312
+  },
+  "proposed": {
+   "order_quantity": 216,
+   "order_date": "2026-08-31",
+   "expected_arrival": "2026-09-07"
+  },
+  "evidence": {
+   "reasoning": "Order 216",
+   "steps": [
+    {
+     "step": "net_need",
+     "change": 585.251818,
+     "quantity": 585.251818
+    },
+    {
+     "step": "safety_stock",
+     "change": 266.16564,
+     "quantity": 851.417458
+    },
+    {
+     "step": "position",
+     "change": -636,
+     "quantity": 215.417458
+    },
+    {
+     "step": "rounding",
+     "change": 0.582542,
+     "quantity": 216
+    }
+   ],
+   "limits": [
+    "Promotion uplift is not computable: 0 distinct uncensored promotion(s) observed, 2 required. No uplift is applied to any planned promotion — the forecast for a promotion day is the ordinary baseline.",
+    "Holiday effect is not computable: 0 non-promotion holiday(s) observed, 3 required. A planned holiday is forecast at its ordinary baseline.",
+    "Annual seasonality was dropped: 12.0 month(s) of history is below the 24-month minimum.",
+    "Accuracy and the error spread leave out 43 holdout day(s) on which a stockout censored sales: on those days the figure to compare against is not demand. The incumbent is scored on exactly the same days.",
+    "order_weekdays_not_recorded_review_period_factor_used",
+    "sigma_from_demand_and_lead_time_variance_not_forecast_error",
+    "reserved_not_recorded_treated_as_none_reserved",
+    "no_ordering_cost_configured_no_economic_order_quantity_floor_applied",
+    "no_price_breaks_recorded_unit_cost_used_as_given"
+   ],
+   "expected_effect": {
+    "amount": 4222.8,
+    "currency": "EUR",
+    "basis": "purchase value at unit cost"
+   }
+  },
+  "limit_check": {
+   "within_limit": true,
+   "limit_ref": "Replenishment order: classes B, C up to 5000",
+   "acted_alone": false
+  },
+  "status": "proposed",
+  "decisions": [],
+  "perimeter": {
+   "data_left_perimeter": false
+  },
+  "created_at": "2026-09-28T00:00:00Z"
+ },
+ {
+  "record_id": "2026-08-31-00003",
+  "schema_version": "0.1",
+  "class": "Replenishment order",
+  "charter_version": "not recorded",
+  "subject": {
+   "product": "P-1010",
+   "location": "MAIN"
+  },
+  "proposer": {
+   "kind": "algorithm",
+   "name": "Simon G. planning engine",
+   "version": "test"
+  },
+  "inputs": {
+   "data_as_of": "2026-08-31T00:00:00Z",
+   "sources": [
+    "movements"
+   ],
+   "absent": [
+    {
+     "input": "fixed order days",
+     "consequence": "not recorded; no default was used in its place"
+    },
+    {
+     "input": "supplier minimum order value",
+     "consequence": "not recorded; no default was used in its place"
+    },
+    {
+     "input": "price breaks",
+     "consequence": "not recorded; no default was used in its place"
+    },
+    {
+     "input": "measured forecast error",
+     "consequence": "not recorded; no default was used in its place"
+    },
+    {
+     "input": "reserved stock",
+     "consequence": "not recorded; no default was used in its place"
+    }
+   ]
+  },
+  "current": {
+   "on_hand": 122,
+   "on_order": 84
+  },
+  "proposed": {
+   "order_quantity": 150,
+   "order_date": "2026-08-31",
+   "expected_arrival": "2026-09-21"
+  },
+  "evidence": {
+   "reasoning": "Order 150",
+   "steps": [
+    {
+     "step": "net_need",
+     "change": 303.52942,
+     "quantity": 303.52942
+    },
+    {
+     "step": "safety_stock",
+     "change": 50.782937,
+     "quantity": 354.312357
+    },
+    {
+     "step": "position",
+     "change": -206,
+     "quantity": 148.312357
+    },
+    {
+     "step": "rounding",
+     "change": 1.687643,
+     "quantity": 150
+    }
+   ],
+   "limits": [
+    "Promotion uplift is not computable: 0 distinct uncensored promotion(s) observed, 2 required. No uplift is applied to any planned promotion — the forecast for a promotion day is the ordinary baseline.",
+    "Holiday effect is not computable: 0 non-promotion holiday(s) observed, 3 required. A planned holiday is forecast at its ordinary baseline.",
+    "Annual seasonality was dropped: 12.0 month(s) of history is below the 24-month minimum.",
+    "Accuracy and the error spread leave out 50 holdout day(s) on which a stockout censored sales: on those days the figure to compare against is not demand. The incumbent is scored on exactly the same days.",
+    "The holdout shows a persistent under-forecast of 20.0%, above the 10% alert threshold — read the level before trusting the safety stock derived from it.",
+    "order_weekdays_not_recorded_review_period_factor_used",
+    "sigma_from_demand_and_lead_time_variance_not_forecast_error",
+    "reserved_not_recorded_treated_as_none_reserved",
+    "no_ordering_cost_configured_no_economic_order_quantity_floor_applied",
+    "no_price_breaks_recorded_unit_cost_used_as_given"
+   ],
+   "expected_effect": {
+    "amount": 3099,
+    "currency": "EUR",
+    "basis": "purchase value at unit cost"
+   }
+  },
+  "limit_check": {
+   "within_limit": true,
+   "limit_ref": "Replenishment order: classes B, C up to 5000",
+   "acted_alone": false
+  },
+  "status": "proposed",
+  "decisions": [],
+  "perimeter": {
+   "data_left_perimeter": false
+  },
+  "created_at": "2026-09-28T00:00:00Z"
+ },
+ {
+  "record_id": "2026-08-31-00004",
+  "schema_version": "0.1",
+  "class": "Replenishment order",
+  "charter_version": "not recorded",
+  "subject": {
+   "product": "P-1022",
+   "location": "MAIN"
+  },
+  "proposer": {
+   "kind": "algorithm",
+   "name": "Simon G. planning engine",
+   "version": "test"
+  },
+  "inputs": {
+   "data_as_of": "2026-08-31T00:00:00Z",
+   "sources": [
+    "movements"
+   ],
+   "absent": [
+    {
+     "input": "fixed order days",
+     "consequence": "not recorded; no default was used in its place"
+    },
+    {
+     "input": "supplier minimum order value",
+     "consequence": "not recorded; no default was used in its place"
+    },
+    {
+     "input": "price breaks",
+     "consequence": "not recorded; no default was used in its place"
+    },
+    {
+     "input": "measured forecast error",
+     "consequence": "not recorded; no default was used in its place"
+    },
+    {
+     "input": "reserved stock",
+     "consequence": "not recorded; no default was used in its place"
+    }
+   ]
+  },
+  "current": {
+   "on_hand": 0,
+   "on_order": 162
+  },
+  "proposed": {
+   "order_quantity": 96,
+   "order_date": "2026-08-31",
+   "expected_arrival": "2026-09-21"
+  },
+  "evidence": {
+   "reasoning": "Order 96",
+   "steps": [
+    {
+     "step": "net_need",
+     "change": 206.468464,
+     "quantity": 206.468464
+    },
+    {
+     "step": "safety_stock",
+     "change": 50.523825,
+     "quantity": 256.992289
+    },
+    {
+     "step": "position",
+     "change": -162,
+     "quantity": 94.992289
+    },
+    {
+     "step": "rounding",
+     "change": 1.007711,
+     "quantity": 96
+    }
+   ],
+   "limits": [
+    "Promotion uplift is not computable: 0 distinct uncensored promotion(s) observed, 2 required. No uplift is applied to any planned promotion — the forecast for a promotion day is the ordinary baseline.",
+    "Holiday effect is not computable: 0 non-promotion holiday(s) observed, 3 required. A planned holiday is forecast at its ordinary baseline.",
+    "Annual seasonality was dropped: 12.0 month(s) of history is below the 24-month minimum.",
+    "Accuracy and the error spread leave out 43 holdout day(s) on which a stockout censored sales: on those days the figure to compare against is not demand. The incumbent is scored on exactly the same days.",
+    "order_weekdays_not_recorded_review_period_factor_used",
+    "sigma_from_demand_and_lead_time_variance_not_forecast_error",
+    "reserved_not_recorded_treated_as_none_reserved",
+    "no_ordering_cost_configured_no_economic_order_quantity_floor_applied",
+    "no_price_breaks_recorded_unit_cost_used_as_given"
+   ],
+   "expected_effect": {
+    "amount": 3653.76,
+    "currency": "EUR",
+    "basis": "purchase value at unit cost"
+   }
+  },
+  "limit_check": {
+   "within_limit": true,
+   "limit_ref": "Replenishment order: classes B, C up to 5000",
+   "acted_alone": false
+  },
+  "status": "proposed",
+  "decisions": [],
+  "perimeter": {
+   "data_left_perimeter": false
+  },
+  "created_at": "2026-09-28T00:00:00Z"
+ }
+]

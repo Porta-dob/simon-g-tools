@@ -1,0 +1,55 @@
+/* Simon G. Working Capital Check — page styles on top of stock-check.css and the Groma site stylesheet.
+   Brand rules hold: rectangles only, no radii, no shadows, no gradients; cobalt used sparingly. */
+
+.sg-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
+.sg-field label { font-size: 14px; color: var(--ink-soft); font-weight: 500; }
+.sg-field input[type="text"] { font: inherit; font-size: 16px; padding: 9px 10px; border: 1px solid var(--hairline-2); border-radius: 0; background: var(--sg-surface); color: var(--ink); min-width: 0; height: 40px; }
+.sg-warn-inline { font-size: 12px; color: var(--sg-order); min-height: 14px; }
+.sg-years { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 4px; }
+.sg-year h3 { font-family: var(--font-display); font-weight: 600; font-size: 16px; margin-bottom: 12px; }
+.sg-currency { max-width: 220px; }
+@media (max-width: 720px) { .sg-years { grid-template-columns: 1fr; } }
+
+.sg-tile .s { line-height: 1.4; }
+
+.sg-chart { width: 100%; height: auto; display: block; background: var(--sg-surface); border: 1px solid var(--sg-line); padding: 6px 0; }
+.sg-chart text.lab { fill: var(--ink); font-size: 13px; font-family: var(--font-body); dominant-baseline: middle; }
+.sg-chart text.val { fill: var(--ink-soft); font-size: 12px; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.sg-chart rect.bar.prior { fill: var(--sg-hist); }
+.sg-chart rect.bar.latest { fill: var(--cobalt); }
+.sg-legend { display: flex; gap: 18px; font-size: 14px; color: var(--ink-soft); margin-top: 8px; }
+.sg-legend i { display: inline-block; width: 18px; height: 10px; vertical-align: middle; margin-right: 6px; }
+.sg-legend .lp { background: var(--sg-hist); }
+.sg-legend .ll { background: var(--cobalt); }
+
+.sg-whatif { border-top: 1px solid var(--sg-line); margin-top: 22px; padding-top: 18px; }
+.sg-whatif h3 { font-family: var(--font-display); font-weight: 600; font-size: 17px; margin-bottom: 6px; }
+.sg-whatif .sg-hint { margin-bottom: 14px; }
+.sg-stepper-row { display: flex; flex-wrap: wrap; gap: 22px; align-items: flex-end; }
+.sg-stepper { display: flex; flex-direction: column; gap: 6px; }
+.sg-stepper label { font-size: 14px; font-weight: 500; color: var(--ink-soft); }
+.sg-stepper-control { display: flex; align-items: stretch; }
+.sg-stepper-control button { font-family: inherit; width: 40px; height: 40px; border: 1px solid var(--obsidian); background: transparent; color: var(--obsidian); font-size: 18px; cursor: pointer; line-height: 1; }
+.sg-stepper-control button:hover { border-color: var(--cobalt); color: var(--cobalt); }
+.sg-stepper-control input { width: 76px; text-align: center; border-left: none; border-right: none; -moz-appearance: textfield; }
+.sg-stepper-control input::-webkit-outer-spin-button, .sg-stepper-control input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.sg-whatif-result { margin-left: auto; }
+.sg-whatif-result .k { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-label); }
+.sg-whatif-result .v { font-family: var(--font-display); font-size: 26px; font-weight: 600; letter-spacing: -0.015em; }
+
+.sg-say { margin-top: 22px; }
+.sg-say h3 { font-family: var(--font-display); font-weight: 600; font-size: 17px; margin-bottom: 10px; }
+.sg-say ol { list-style: none; counter-reset: sy; padding: 0; }
+.sg-say li { counter-increment: sy; display: grid; grid-template-columns: 26px 1fr; gap: 10px; margin-bottom: 10px; font-size: 16px; color: var(--ink); }
+.sg-say li::before { content: counter(sy); font-family: var(--font-mono); font-size: 12px; color: #fff; background: var(--obsidian); width: 22px; height: 22px; display: grid; place-items: center; margin-top: 2px; }
+
+.sg-copy-row { margin-top: 18px; }
+.sg-copy-status { font-size: 14px; color: var(--ink-soft); }
+
+.sg-formulas dt { font-family: var(--font-mono); font-size: 14px; font-weight: 500; margin-top: 12px; }
+.sg-formulas dd { font-size: 15px; color: var(--ink-soft); margin: 2px 0 0; }
+
+@media print {
+  .rail, .site-header, .site-footer, #step-inputs, .sg-tools, .sg-next, .sg-faq, .sg-trust, .sg-whatif { display: none !important; }
+  body { background: #fff; }
+}

@@ -1,0 +1,25 @@
+﻿product,description,location,lead_time_days,unit_cost,pack_size,min_order_qty,on_order
+P-1001,Oil filter,MAIN,10,32.66,12,12,720
+P-1002,Air filter,MAIN,7,7.4,12,12,132
+P-1003,Brake pads front,MAIN,5,19,6,6,0
+P-1004,Brake disc,MAIN,5,83.77,6,6,756
+P-1005,Wiper blade 600,MAIN,21,22.37,1,1,0
+P-1006,Engine oil 5W40 4L,MAIN,7,113.05,1,1,14
+P-1007,Coolant 1L,MAIN,7,19.55,12,12,312
+P-1008,Battery 70Ah,MAIN,7,76.41,12,12,276
+P-1009,Spark plug,MAIN,10,109.6,6,6,0
+P-1010,Timing belt kit,MAIN,21,20.66,6,6,84
+P-1011,Cabin filter,MAIN,10,66.86,1,1,0
+P-1012,Bulb H7,MAIN,10,98.06,1,1,0
+P-1013,Fuel filter,MAIN,7,106.45,12,12,468
+P-1014,Shock absorber,MAIN,14,11.15,6,6,0
+P-1015,Clutch kit,MAIN,10,30.53,6,6,228
+P-1016,Alternator,MAIN,7,51.56,6,6,0
+P-1017,Wheel bearing,MAIN,21,22.28,1,1,18
+P-1018,Brake fluid 1L,MAIN,5,69.96,1,1,0
+P-1019,Antifreeze 5L,MAIN,14,62.09,12,12,0
+P-1020,Exhaust clamp,MAIN,21,3.72,6,6,90
+P-1021,V-belt,MAIN,21,28.79,6,6,162
+P-1022,Thermostat,MAIN,21,38.06,6,6,162
+P-1023,Water pump,MAIN,14,76.84,1,1,16
+P-1024,Glow plug,MAIN,10,27.36,1,1,0

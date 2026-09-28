@@ -1,0 +1,71 @@
+/* Simon G. Decision Charter — page styles on top of stock-check.css, which already carries
+   the shared sg- components (sg-card, sg-btn, sg-grid, sg-table-wrap, sg-data, sg-tiles,
+   sg-hint, sg-warn…). Only what is new to this tool is added here.
+   Brand rules hold: rectangles only, no radii, no shadows, no gradients; cobalt used sparingly. */
+
+.sg-check-inline { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink); }
+
+/* ---- the editable charter table ---- */
+.sg-charter-table { min-width: 980px; }
+.sg-charter-table th { white-space: normal; }
+.sg-charter-table td { white-space: normal; vertical-align: top; text-align: left; }
+.sg-charter-table td.sg-cell-check { text-align: center; width: 36px; }
+.sg-charter-table input[type="text"],
+.sg-charter-table input[type="date"] { width: 100%; min-width: 120px; }
+.sg-charter-table tr.sg-group td { background: var(--ivory-deep); font-family: var(--font-mono); font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-faint); padding: 8px 13px; }
+.sg-btn.small { padding: 6px 12px; font-size: 12px; }
+
+.sg-cellwrap { display: flex; flex-direction: column; gap: 6px; min-width: 220px; }
+.sg-blankline { font-size: 14px; line-height: 1.5; }
+.sg-blanktext { color: var(--ink); }
+input.sg-blank { display: inline-block; width: 6em; min-width: 5em; padding: 4px 6px; font-size: 14px; margin: 0 2px; border: 1px solid var(--hairline-2); background: var(--sg-surface); font: inherit; }
+textarea.sg-cellText { font: inherit; font-size: 14px; padding: 8px 9px; border: 1px solid var(--hairline-2); background: var(--sg-surface); color: var(--ink); width: 100%; min-width: 220px; resize: vertical; }
+.sg-linklike { align-self: flex-start; border: 0; background: none; padding: 0; font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.04em; color: var(--cobalt); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.sg-linklike:hover { color: var(--obsidian); }
+
+/* ---- perimeter step ---- */
+.sg-add-row { margin-top: 14px; }
+.sg-radios { display: flex; flex-wrap: wrap; gap: 18px 26px; margin-bottom: 16px; border: 0; padding: 0; }
+.sg-radios label { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink); font-weight: 500; }
+.sg-legend-tight { margin: 0 0 8px; padding: 0; width: 100%; }
+.sg textarea.sg-area { font: inherit; font-size: 16px; padding: 9px 10px; border: 1px solid var(--hairline-2); background: var(--sg-surface); color: var(--ink); width: 100%; resize: vertical; min-height: 70px; }
+
+/* ---- completeness tiles ---- */
+.sg-tile-ok .v { color: var(--sg-ok); }
+.sg-tile-warn .v { color: var(--sg-order); }
+.sg-b-covered-text { color: var(--sg-ok); font-weight: 500; }
+.sg-b-order-text { color: var(--sg-order); font-weight: 500; }
+
+/* ---- live preview / print ---- */
+.sg-preview-doc { background: var(--sg-surface); border: 1px solid var(--sg-line); padding: clamp(18px, 3vw, 28px); margin: 22px 0; }
+.sg-preview-doc h3 { font-family: var(--font-display); font-size: 20px; font-weight: 600; margin-bottom: 6px; }
+#previewPerimeter { margin-top: 28px; padding-top: 22px; border-top: 1px solid var(--sg-line); }
+#previewPerimeter p { font-size: 16px; margin: 6px 0; max-width: 78ch; }
+.sg-buttons-row { margin: 18px 0; }
+.sg-save-notice { font-size: 12px; color: var(--ink-faint); font-family: var(--font-mono); }
+
+@page { size: A4 portrait; margin: 14mm; }
+
+@media print {
+  .rail, .site-header, .site-footer, #step-company, #step-classes, #step-perimeter,
+  .sg-buttons-row, .sg-next, .sg-faq, .sg-what, .sg-save-notice, .sg-hero,
+  .sg-results-h, .sg-csv-json-hint, #complTiles, #complBanner { display: none !important; }
+  body { background: #fff; }
+  #results { border: 0; padding: 0; margin: 0; }
+  .sg-preview-doc { border: 0; padding: 0; margin: 0; }
+  #previewPerimeter { page-break-before: always; break-before: page; border-top: 0; padding-top: 0; }
+  .sg-table-wrap { border: 0; overflow: visible; }
+  .sg-data th, .sg-data td { padding: 4px 6px; font-size: 11px; }
+  input.sg-blank { border: 0; border-bottom: 1px solid var(--ink); padding: 0 2px; }
+  textarea.sg-cellText { border: 0; }
+}
+
+@media (max-width: 700px) {
+  .sg-charter-table { min-width: 720px; }
+}
+
+/* pointer targets */
+input.sg-blank { min-height: 32px; }
+.sg-linklike { min-height: 24px; padding: 4px 0; font-size: 12px; }
+
+.sg-charter-table input[type="text"], .sg-charter-table input[type="date"] { min-height: 36px; font: inherit; font-size: 14px; padding: 6px 8px; border: 1px solid var(--hairline-2); border-radius: 0; background: var(--sg-surface); color: var(--ink); }

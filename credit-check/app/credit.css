@@ -1,0 +1,20 @@
+/* Simon G. Credit Check — page styles on top of the Groma site stylesheet and the shared sg- components.
+   Brand rules hold: rectangles only, no radii, no shadows, no gradients; cobalt used sparingly. */
+
+.sg-cls-A { background: var(--sg-ok-bg); color: var(--sg-ok); }
+.sg-cls-B { background: var(--sg-ok-bg); color: var(--sg-ok); }
+.sg-cls-C { background: var(--sg-excess-bg); color: var(--sg-excess); }
+.sg-cls-D { background: var(--sg-order-bg); color: var(--sg-order); }
+.sg-cls-none { background: transparent; color: var(--ink-label); border: 1px solid var(--hairline-2); }
+
+.sg-comps { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; margin-top: 10px; }
+.sg-comp { border: 1px solid var(--sg-line); background: var(--sg-surface); padding: 12px 14px; }
+.sg-comp-h { display: flex; justify-content: space-between; align-items: baseline; font-size: 14px; font-weight: 500; margin-bottom: 6px; }
+.sg-comp-v { font-family: var(--font-mono); color: var(--ink-label); }
+.sg-comp-s { font-size: 14px; color: var(--ink-soft); margin: 8px 0 0; }
+
+.sg-bar { width: 100%; height: 14px; display: block; }
+.sg-bar .track { fill: var(--ivory-deep); }
+.sg-bar .fill { fill: var(--cobalt); }
+
+.sg input[type="date"] { font: inherit; font-size: 16px; padding: 8px 10px; min-height: 40px; border: 1px solid var(--hairline-2); border-radius: 0; background: var(--sg-surface); color: var(--ink); }
