@@ -19,12 +19,13 @@ for (const f of ['engine.js', 'parse.js', 'core.js', 'sample.js']) vm.runInConte
 vm.runInContext('self.SimonEngine = SimonEngine;', ctx);
 const { SGCore, SGParse, SGSample, SimonEngine } = ctx;
 
-const d = SGSample.generate({ products: 40, days: 730, seed: 4242, end: '2026-08-31' });
+const FIRST = '2026-08-31', SECOND = '2026-09-30';
+const d = SGSample.generate({ products: 40, days: 760, seed: 4242, end: SECOND });
 const head = d.moves[0];
 let rows = d.moves.slice(1);
 let products = d.products.slice(1);
 const of = (code, type) => rows.filter(r => r[1] === code && (!type || r[3] === type));
-const perDay = code => of(code, 'sale').length / 730;
+const perDay = code => of(code, 'sale').length / 760;
 const fast = products.map(p => p[0]).filter(c => perDay(c) > 0.8);
 const planted = [];
 
@@ -40,7 +41,7 @@ const planted = [];
 // 2. a missing receipt: the rebuilt stock falls below zero
 {
   const code = fast[4];
-  const rec = of(code, 'receipt').sort((a, b) => b[4] - a[4])[0];
+  const rec = of(code, 'receipt').filter(r => r[0] <= FIRST).sort((a, b) => b[4] - a[4])[0];
   rows = rows.filter(r => r !== rec);
   planted.push({ code, en: `One receipt of ${rec[4]} units on ${rec[0]} was removed.`, expect: 'The rebuilt stock falls below zero. The page reports it above the table and in the product detail.',
     ro: `O recepție de ${rec[4]} bucăți din ${rec[0]} a fost scoasă.`, expectRo: 'Stocul refăcut coboară sub zero. Pagina spune acest lucru deasupra tabelului și în detaliul produsului.' });
@@ -75,15 +76,17 @@ const settings = {
   serviceLevels: { AX: 0.98, AY: 0.97, AZ: 0.95, BX: 0.96, BY: 0.95, BZ: 0.92, CX: 0.92, CY: 0.9, CZ: 0.85 },
   abcCutA: 0.8, abcCutB: 0.95, limit: { classes: ['B', 'C'], maxValue: 2000 },
 };
+const all = rows;
+rows = all.filter(r => !(String(r[0]) > FIRST && /^\d{4}-/.test(String(r[0]))));
 const isIso = r => /^\d{4}-\d{2}-\d{2}$/.test(String(r[0])) && !Number.isNaN(Date.parse(r[0]));
 const clean = rows.filter(r => isIso(r) && typeof r[4] === 'number');
 const prodRows = [d.products[0]].concat(products);
-const calc = list => SGCore.run({
+const calc = (list, previous) => SGCore.run({
   moves: { rows: [head].concat(list), map: { date: 0, sku: 1, loc: 2, type: 3, qty: 4, stockout: -1 }, dec: '.', dateOrder: 'DMY',
     roles: { opening: 'opening', sale: 'sale', receipt: 'receipt', return: 'return', adjustment: 'adjust' }, flipSign: false },
   opening: null,
   products: { rows: prodRows, map: { sku: 0, loc: 2, onHand: -1, onOrder: 7, leadTime: 3, unitCost: 4, packSize: 5, moq: 6 }, dec: '.' },
-  settings,
+  settings, previous: previous || null,
 }, SimonEngine, SGParse);
 const run = calc(clean);        // what the workbook holds
 const runCsv = calc(rows);      // the CSV also holds the two unreadable rows
@@ -106,22 +109,34 @@ const E = {
   intermittent: R.filter(r => /croston|tsb/.test(r.method)).length,
   asOf: run.asOf,
 };
+// the second month, compared with the first as the workspace file would hold it
+const snap = JSON.parse(JSON.stringify(SGCore.snapshot(run.results, run, settings)));
+const clean2 = all.filter(r => isIso(r) && typeof r[4] === 'number');
+const run2 = calc(clean2, { asOf: snap.asOf });
+const C = SGCore.compare(snap, run2.results, run2);
+const orders2 = run2.results.filter(r => r.status === 'order');
+const miss = C.rows.filter(r => r.diff !== null).sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff))[0];
 const nf = v => new Intl.NumberFormat('en-GB').format(v);
 
 // files
 const csv = rws => '\ufeff' + rws.map(r => r.map(c => { const s = String(c); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }).join(',')).join('\r\n') + '\r\n';
 fs.writeFileSync(path.join(OUT, 'simon-g-test-transactions.csv'), csv([head].concat(rows)));
 fs.writeFileSync(path.join(OUT, 'simon-g-test-products.csv'), csv(prodRows));
-const handover = path.join(OUT, 'handover.json');
-fs.writeFileSync(handover, JSON.stringify({
-  opening: [['product', 'location', 'date', 'quantity']].concat(clean.filter(r => r[3] === 'opening').map(r => [r[1], r[2], r[0], r[4]])),
-  transactions: [head].concat(clean.filter(r => r[3] !== 'opening')),
-  products: prodRows,
-  note_en: 'Invented: 40 products of a parts distributor, one location, two years, with planted cases described in TEST-GUIDE.md.',
-  note_ro: 'Inventate: 40 de produse ale unui distribuitor de piese, o locație, doi ani, cu cazuri plantate, descrise în TEST-GUIDE.md.',
-}));
-execFileSync('python', [path.join(root, 'tools', 'build-templates.py'), handover, path.join(OUT, 'simon-g-test-stock.xlsx')], { stdio: 'inherit' });
-fs.unlinkSync(handover);
+const workbook = (list, name, note) => {
+  const h = path.join(OUT, 'handover.json');
+  fs.writeFileSync(h, JSON.stringify({
+    opening: [['product', 'location', 'date', 'quantity']].concat(list.filter(r => r[3] === 'opening').map(r => [r[1], r[2], r[0], r[4]])),
+    transactions: [head].concat(list.filter(r => r[3] !== 'opening')),
+    products: prodRows,
+    note_en: 'Invented: 40 products of a parts distributor, one location, ' + note + ', with planted cases described in TEST-GUIDE.md.',
+    note_ro: 'Inventate: 40 de produse ale unui distribuitor de piese, o locație, ' + note + ', cu cazuri plantate, descrise în TEST-GUIDE.md.',
+  }));
+  execFileSync('python', [path.join(root, 'tools', 'build-templates.py'), h, path.join(OUT, name)], { stdio: 'inherit' });
+  fs.unlinkSync(h);
+};
+workbook(clean, 'simon-g-test-stock.xlsx', 'data to ' + FIRST);
+workbook(clean2, 'simon-g-test-stock-next-month.xlsx', 'data to ' + SECOND);
+
 const credit = path.resolve(root, '..', 'credit-check', 'templates', 'simon-g-credit-invoices.xlsx');
 if (fs.existsSync(credit)) fs.copyFileSync(credit, path.join(OUT, 'simon-g-test-invoices.xlsx'));
 
@@ -133,7 +148,8 @@ Generated on ${new Date().toISOString().slice(0, 10)}. All data is invented.
 
 | File | Use it on |
 |---|---|
-| \`simon-g-test-stock.xlsx\` | Stock Check: one workbook with transactions, opening stock and products |
+| \`simon-g-test-stock.xlsx\` | Stock Check, first month: one workbook with transactions, opening stock and products, to ${FIRST} |
+| \`simon-g-test-stock-next-month.xlsx\` | Stock Check, second month: the same workbook with one more month, to ${SECOND} |
 | \`simon-g-test-transactions.csv\` | Stock Check: the same transactions as CSV, with the opening stock inside and two unreadable rows |
 | \`simon-g-test-products.csv\` | Stock Check: the product data as CSV |
 | \`simon-g-test-invoices.xlsx\` | Credit Check |
@@ -180,7 +196,33 @@ Under the tiles the page should also say:
 
 The two unreadable rows are in the CSV file only. Load \`simon-g-test-transactions.csv\`, then \`simon-g-test-products.csv\` under "Separate files", to see them counted: ${E.badDate} unreadable date and ${E.badQty} unreadable quantity.
 
-## Test 3: try to break it
+## Test 3: the next month
+
+This is what a planner does the month after.
+
+1. Finish Test 1. Under the results, press "Save workspace". A file named \`simon-g-workspace-${FIRST}.json\` lands in your downloads folder.
+2. Reload the page, so that it starts empty.
+3. Press "Load your workspace file" and choose that file.
+4. Choose \`simon-g-test-stock-next-month.xlsx\`. The columns, the transaction types and the limit should already be set. You should not have to type anything.
+5. Run.
+
+A block named "Since your last run" should appear under the results.
+
+| Figure | Expected |
+|---|---|
+| Period | ${C.from} to ${C.to}, ${C.days} days |
+| Forecast for the period | ${nf(Math.round(C.totals.forecast))}, sold ${nf(Math.round(C.totals.sold))} |
+| Forecast error over the period | ${Math.round(C.totals.error * 100)}% |
+| Proposals followed | ${C.totals.followed} of ${C.totals.proposals}, with ${C.totals.partly} partly, ${C.totals.notFollowed} not and ${C.totals.notDue} not yet due |
+| Not followed, then ran out | ${C.totals.notFollowedEmpty} |
+| Largest difference | ${miss.sku}: forecast ${nf(Math.round(miss.forecast))}, sold ${nf(Math.round(miss.sold))} |
+| To order now, second month | ${orders2.length} products, value ${nf(Math.round(sum(orders2, r => r.order.value)))} |
+
+The receipts in the second month were invented without regard to the proposals, so "followed" here only shows that the page reads receipts correctly.
+
+Then press "Management report". A short report of about two pages should open, with the key figures, the orders that need a signature, the excess stock, the comparison and the notes on the data. Write a title, then press "Print or save as PDF". The printed page should hold the report only.
+
+## Test 4: try to break it
 
 | Try | What should happen |
 |---|---|
@@ -195,8 +237,11 @@ The two unreadable rows are in the CSV file only. Load \`simon-g-test-transactio
 | Press "Show me how it works" | Seven steps on the page's own sample |
 | Ask each of the six questions | An answer in words, and the table sorted to match |
 | Export the decision records | A JSON file with one record per order |
+| Load the workspace, then the first month again | The page says the dates are the same and compares nothing |
+| Load the workspace, then a file with other column names | The columns are guessed again; nothing from the workspace is forced onto them |
+| Load a text file as the workspace | The page says it is not a workspace file |
 
-## Test 4: the other tools
+## Test 5: the other tools
 
 | Tool | Address | What to try |
 |---|---|---|

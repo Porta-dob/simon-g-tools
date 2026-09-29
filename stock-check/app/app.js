@@ -47,7 +47,7 @@
   const stepName = s => (T['st_' + s] === undefined ? String(s).replace(/_/g, ' ') : T['st_' + s]);
   const stepNote = n => String(n).replace(/(\d+\.\d{2})\d+/g, '$1');
 
-  const state = { moves: null, opening: null, products: null, results: null, meta: null, settings: null, sort: { col: 'status', dir: 1 }, worker: null, tour: -1 };
+  const state = { moves: null, opening: null, products: null, results: null, meta: null, settings: null, sort: { col: 'status', dir: 1 }, worker: null, tour: -1, workspace: null, compare: null };
 
   function say(msg) { $('progress').textContent = msg; }
   const column = (rows, i, max) => { const out = []; for (let r = 1; r < rows.length && out.length < max; r++) out.push(rows[r][i]); return out; };
@@ -130,18 +130,21 @@
     s.roles = null; s.types = []; s.flipSign = false; s.negativeShare = 0;
     state.moves = s;
     scanMoves(true);
+    useSavedMoves();
     renderMovesMapping();
     renderPreview();
   }
   function setOpening(sheet, label) {
     if (sheet.rows.length < 2) { say(t('openingEmpty')); return; }
     state.opening = source(sheet, P.OPENING_FIELDS, label);
+    useSaved('opening', P.OPENING_FIELDS);
     $('openingName').textContent = label + ' · ' + nf0.format(sheet.rows.length - 1) + ' ' + t('rowsWord');
     renderSimpleMapping('openingMap', state.opening, P.OPENING_FIELDS, true);
   }
   function setProducts(sheet, label) {
     if (sheet.rows.length < 2) { say(t('productsEmpty')); return; }
     state.products = source(sheet, P.PRODUCT_FIELDS, label);
+    useSaved('products', P.PRODUCT_FIELDS);
     $('productsName').textContent = label + ' · ' + nf0.format(sheet.rows.length - 1) + ' ' + t('rowsWord');
     renderSimpleMapping('productsMap', state.products, P.PRODUCT_FIELDS, false);
   }
@@ -305,10 +308,109 @@
     if (s) renderOpeningNote();
   }
 
+  // ---------------------------------------------------------------- workspace
+  // The workspace file holds the visitor's columns, transaction types, assumptions and the last results.
+  // It is written to and read from their own computer.
+  const WS_FORMAT = 'simon-g-stock-workspace';
+
+  function savedColumns(src, fields) {
+    if (!src) return null;
+    const columns = {};
+    fields.forEach(f => { const i = src.map[f.id]; columns[f.id] = i >= 0 ? String(src.headers[i]).trim() : null; });
+    return { columns, dec: src.fromExcel ? null : src.dec, dateOrder: src.dateOrderChoice || null, roles: src.roles || null, flipSign: !!src.flipSign };
+  }
+
+  /** Puts the saved columns on a file just loaded. If a saved column is not in the file, nothing is applied. */
+  function applySaved(src, saved, fields) {
+    if (!src || !saved || !saved.columns) return false;
+    const map = {};
+    for (const f of fields) {
+      const name = saved.columns[f.id];
+      if (name === undefined) continue;
+      if (name === null) { map[f.id] = -1; continue; }
+      const i = src.headers.findIndex(h => String(h).trim() === name);
+      if (i < 0) return false;
+      map[f.id] = i;
+    }
+    Object.assign(src.map, map);
+    if (!src.fromExcel && (saved.dec === ',' || saved.dec === '.')) { src.dec = saved.dec; src.decSure = true; }
+    if (saved.dateOrder === 'DMY' || saved.dateOrder === 'MDY') src.dateOrderChoice = saved.dateOrder;
+    return true;
+  }
+
+  function useSaved(kind, fields) {
+    const ws = state.workspace;
+    if (!ws || !ws.mapping || !ws.mapping[kind]) return;
+    state[kind].fromWorkspace = applySaved(state[kind], ws.mapping[kind], fields);
+  }
+
+  function useSavedMoves() {
+    const ws = state.workspace, s = state.moves;
+    if (!ws || !ws.mapping || !ws.mapping.moves || !s) return;
+    const saved = ws.mapping.moves;
+    s.fromWorkspace = applySaved(s, saved, P.SALES_FIELDS);
+    if (!s.fromWorkspace) return;
+    scanMoves(false);
+    if (s.roles !== null && saved.roles) s.types.forEach(x => { if (SGCore.ROLES.indexOf(saved.roles[x.value]) !== -1) s.roles[x.value] = saved.roles[x.value]; });
+    measureSign();
+    s.flipSign = !!saved.flipSign; s.flipChosen = true;
+  }
+
+  function applySettings(S) {
+    if (!S) return;
+    const put = (id, v) => { if (typeof v === 'number' && Number.isFinite(v)) $(id).value = String(v); };
+    put('leadTimeDays', S.leadTimeDays); put('leadTimeSdDays', S.leadTimeSdDays); put('reviewPeriodDays', S.reviewPeriodDays);
+    put('coverCapDays', S.coverCapDays); put('excessCoverDays', S.excessCoverDays);
+    if (typeof S.fillZeros === 'boolean') $('fillZeros').checked = S.fillZeros;
+    if (S.limit && Array.isArray(S.limit.classes)) {
+      ['A', 'B', 'C'].forEach(c => { $('limit' + c).checked = S.limit.classes.indexOf(c) !== -1; });
+      $('limitValue').value = typeof S.limit.maxValue === 'number' ? String(S.limit.maxValue).replace('.', LANG === 'ro' ? ',' : '.') : '';
+    }
+    if (typeof S.currency === 'string') $('currency').value = S.currency.slice(0, 3);
+    if (S.serviceLevels) document.querySelectorAll('#matrix input').forEach(i => {
+      const v = S.serviceLevels[i.getAttribute('data-cell')];
+      if (typeof v === 'number' && v > 0 && v < 1) i.value = String(Math.round(v * 1000) / 10);
+    });
+  }
+
+  function loadWorkspace(file) {
+    const fr = new FileReader();
+    const note = $('workspaceName');
+    fr.onerror = () => { note.textContent = t('fileUnreadable'); };
+    fr.onload = () => {
+      let ws = null;
+      try { ws = JSON.parse(String(fr.result)); } catch (e) { ws = null; }
+      if (!ws || ws.format !== WS_FORMAT || typeof ws.mapping !== 'object' || ws.mapping === null) { note.textContent = t('ws_bad'); return; }
+      state.workspace = ws;
+      applySettings(ws.settings);
+      if (state.moves) { useSavedMoves(); renderMovesMapping(); }
+      if (state.opening) { useSaved('opening', P.OPENING_FIELDS); renderSimpleMapping('openingMap', state.opening, P.OPENING_FIELDS, true); }
+      if (state.products) { useSaved('products', P.PRODUCT_FIELDS); renderSimpleMapping('productsMap', state.products, P.PRODUCT_FIELDS, false); }
+      const run = ws.lastRun && Array.isArray(ws.lastRun.rows) ? ws.lastRun : null;
+      note.textContent = file.name + ' · ' + (run ? t('ws_loaded', { d: run.asOf, n: nf0.format(run.rows.length) }) : t('ws_loadedNoRun'));
+      refreshRun();
+    };
+    fr.readAsText(file);
+  }
+
+  function saveWorkspace() {
+    if (!state.results) return;
+    const ws = {
+      format: WS_FORMAT, version: 1, savedAt: new Date().toISOString(), language: LANG,
+      note: 'Written by the Simon G. Stock Check on your computer. It holds your column choices, your assumptions and the results of this run. It holds no transaction rows.',
+      mapping: { moves: savedColumns(state.moves, P.SALES_FIELDS), opening: savedColumns(state.opening, P.OPENING_FIELDS), products: savedColumns(state.products, P.PRODUCT_FIELDS) },
+      settings: state.settings,
+      lastRun: SGCore.snapshot(state.results, state.meta, state.settings),
+    };
+    download(t('ws_file', { d: state.meta.asOf }), 'application/json', JSON.stringify(ws));
+    $('workspaceSaved').textContent = t('ws_saved');
+  }
+
   // ---------------------------------------------------------------- sample
   function sampleData() {
     const d = SGSample.generate();
-    state.opening = null; state.products = null;
+    state.opening = null; state.products = null; state.workspace = null;
+    $('workspaceName').textContent = '';
     $('openingName').textContent = ''; $('openingMap').classList.add('sg-hidden');
     setMoves({ name: 'sample', rows: d.moves, fromExcel: true }, 'sample');
     setProducts({ name: 'sample', rows: d.products, fromExcel: true }, 'sample');
@@ -352,6 +454,7 @@
       else if (m.type === 'error') { say(m.code ? t(m.code) : t('stopped', { m: m.message })); $('runBtn').disabled = false; }
       else if (m.type === 'done') {
         state.results = m.results; state.meta = m;
+        state.compare = state.workspace && state.workspace.lastRun ? SGCore.compare(state.workspace.lastRun, m.results, m) : null;
         say(t('doneLine', { n: nf0.format(m.results.length), s: nf1.format(m.seconds) }));
         $('runBtn').disabled = false;
         renderResults();
@@ -359,7 +462,8 @@
       }
     };
     w.onerror = e => { say(t('stopped', { m: e.message })); $('runBtn').disabled = false; };
-    w.postMessage({ type: 'run', input: { moves: pack(state.moves), opening: pack(state.opening), products: pack(state.products), settings: state.settings } });
+    const last = state.workspace && state.workspace.lastRun ? { asOf: state.workspace.lastRun.asOf } : null;
+    w.postMessage({ type: 'run', input: { moves: pack(state.moves), opening: pack(state.opening), products: pack(state.products), settings: state.settings, previous: last } });
   }
 
   // ---------------------------------------------------------------- results
@@ -413,6 +517,8 @@
     const holed = R.filter(r => r.holes && r.holes.length > 0).length;
     if (holed) line(t('holes', { n: nf0.format(holed) }));
     line(t(M.abcBasis === 'value' ? 'abcValue' : 'abcUnits'));
+    renderSince();
+    $('workspaceSaved').textContent = '';
 
     const asks = $('asks');
     asks.textContent = '';
@@ -431,6 +537,130 @@
     renderTable();
     if (state.tour < 0) $('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
+
+  // ---------------------------------------------------------------- since the last run
+  const signed = v => (isNum(v) ? (v > 0 ? '+' : '') + nf0.format(v) : '—');
+  function sinceTiles(C) {
+    const T2 = C.totals, out = [];
+    if (C.forecastCovered) {
+      out.push([t('sc_fc'), nf0.format(T2.forecast), t('sc_fcSub', { v: nf0.format(T2.sold) })]);
+      const b = T2.bias;
+      out.push([t('sc_err'), pct(T2.error), !isNum(b) ? '' : Math.abs(b) < 0.005 ? t('sc_errEven') : t(b > 0 ? 'sc_errOver' : 'sc_errUnder', { p: pct(Math.abs(b)) })]);
+    }
+    if (T2.proposals > 0) {
+      out.push([t('sc_followed'), t('sc_followedV', { a: nf0.format(T2.followed), b: nf0.format(T2.proposals) }),
+        t('sc_followedSub', { p: nf0.format(T2.partly), n: nf0.format(T2.notFollowed), d: nf0.format(T2.notDue) })]);
+      out.push([t('sc_empty'), nf0.format(T2.notFollowedEmpty), t('sc_emptySub')]);
+    }
+    if (T2.valued) {
+      out.push([t('t_stock'), nf0.format(T2.stockNow), t('sc_was', { v: nf0.format(T2.stockBefore) })]);
+      out.push([t('t_excess'), nf0.format(T2.excessNow), t('sc_was', { v: nf0.format(T2.excessBefore) })]);
+    }
+    return out;
+  }
+  function sinceTable(C, n) {
+    const rows = C.rows.filter(r => r.diff !== null || r.proposed > 0)
+      .sort((a, b) => Math.abs(b.diff || 0) - Math.abs(a.diff || 0)).slice(0, n);
+    const tb = el('table', { class: 'sg-data sg-plain' });
+    tb.appendChild(el('thead', null, [el('tr', null, ['sku', 'fc', 'sold', 'diff', 'empty', 'prop', 'recv', 'fol'].map((c, i) =>
+      el('th', { class: i === 0 || i === 7 ? 'l' : '', scope: 'col', text: t('sc_c_' + c) })))]));
+    const body = el('tbody');
+    rows.forEach(r => body.appendChild(el('tr', null, [
+      el('td', { class: 'l', text: r.sku + (r.loc ? ' · ' + r.loc : '') }), el('td', { text: num(r.forecast) }), el('td', { text: num(r.sold) }),
+      el('td', { text: signed(r.diff) }), el('td', { text: num(r.emptyDays) }), el('td', { text: r.proposed > 0 ? num(r.proposed) : '—' }),
+      el('td', { text: num(r.received) }), el('td', { class: 'l', text: r.followed ? t('fol_' + r.followed) : '—' }),
+    ])));
+    tb.appendChild(body);
+    return tb;
+  }
+  function renderSince() {
+    const host = $('since'), C = state.compare;
+    host.textContent = '';
+    host.classList.toggle('sg-hidden', !C);
+    if (!C) return;
+    host.appendChild(el('h3', { text: t('since_h') }));
+    if (!C.usable) { host.appendChild(el('p', { class: 'sg-hint', text: t(C.reason === 'same' ? 'since_same' : 'since_older', { a: C.from, b: C.to }) })); return; }
+    host.appendChild(el('p', { class: 'sg-hint', text: t('since_sub', { a: C.from, b: C.to, n: C.days }) }));
+    if (!C.forecastCovered) host.appendChild(el('p', { class: 'sg-warnline', text: t('since_long') }));
+    host.appendChild(el('div', { class: 'sg-tiles' }, sinceTiles(C).map(x => tile(x[0], x[1], x[2]))));
+    if (C.totals.gone > 0 || C.totals.fresh > 0) host.appendChild(el('p', { class: 'sg-hint', text: t('sc_gone', { g: nf0.format(C.totals.gone), f: nf0.format(C.totals.fresh) }) }));
+    host.appendChild(el('h4', { text: t('sc_tableH') }));
+    host.appendChild(el('div', { class: 'sg-table-wrap' }, [sinceTable(C, 10)]));
+    host.appendChild(el('p', { class: 'sg-hint', text: t('sc_note') }));
+  }
+
+  // ---------------------------------------------------------------- management report
+  function reportTable(heads, rows) {
+    const tb = el('table', { class: 'sg-data sg-plain' });
+    tb.appendChild(el('thead', null, [el('tr', null, heads.map((h, i) => el('th', { class: i === 0 ? 'l' : '', scope: 'col', text: h }))) ]));
+    const body = el('tbody');
+    rows.forEach(r => body.appendChild(el('tr', null, r.map((c, i) => el('td', { class: i === 0 || typeof c !== 'string' || !/^[-+−\d]/.test(c) ? 'l' : '', text: c })))));
+    tb.appendChild(body);
+    return el('div', { class: 'sg-table-wrap' }, [tb]);
+  }
+  function openReport() {
+    const R = state.results, M = state.meta, S = state.settings, C = state.compare;
+    if (!R) return;
+    const c = $('reportSheet');
+    c.textContent = '';
+    const name = r => r.sku + (r.loc ? ' · ' + r.loc : '');
+    c.appendChild(el('p', { class: 'sg-rp-brand', text: 'Simon G. · ' + t('x_title').replace('Simon G. ', '') }));
+    c.appendChild(el('h2', { id: 'reportHeading', text: $('reportTitle').value.trim() || t('rp_title') }));
+    c.appendChild(el('p', { class: 'sg-muted', text: t('rp_asof', { d: M.asOf, n: nf0.format(R.length) }) + (S.currency ? ' · ' + S.currency : '') }));
+
+    c.appendChild(el('h3', { text: t('rp_key') }));
+    const tiles = el('div', { class: 'sg-tiles' });
+    document.querySelectorAll('#tiles .sg-tile').forEach(n => tiles.appendChild(n.cloneNode(true)));
+    c.appendChild(tiles);
+
+    c.appendChild(el('h3', { text: t('rp_decide') }));
+    const orders = R.filter(r => r.status === 'order');
+    if (orders.length === 0) c.appendChild(el('p', { text: t('a_first0') }));
+    else {
+      const a = SGCore.answer('sign', R);
+      c.appendChild(el('p', { text: t('a_sign', { inside: nf0.format(a.inside), insideValue: num(a.insideValue), outside: nf0.format(a.outside), outsideValue: num(a.outsideValue) }) }));
+      const top = orders.filter(r => !r.limit || !r.limit.within).sort((x, y) => ((y.order.value || 0) - (x.order.value || 0)) || (y.order.qty - x.order.qty)).slice(0, 5);
+      if (top.length) {
+        c.appendChild(el('p', { class: 'sg-hint', text: t('rp_decideTop', { n: top.length }) }));
+        c.appendChild(reportTable([t('c_sku'), t('c_cls'), t('c_onHand'), t('c_coverDays'), t('c_orderQty'), t('c_orderValue'), t('rp_why')],
+          top.map(r => [name(r), (r.abc || '') + (r.xyz || ''), num(r.onHand), num(r.coverDays), num(r.order.qty), num(r.order.value),
+            r.limit ? r.limit.reasons.map(x => t('rp_r_' + x)).join(', ') : ''])));
+      }
+    }
+
+    const excess = R.filter(r => r.excessUnits > 0).sort((x, y) => ((y.excessValue || 0) - (x.excessValue || 0)) || (y.excessUnits - x.excessUnits));
+    c.appendChild(el('h3', { text: t('rp_cash') }));
+    if (excess.length === 0) c.appendChild(el('p', { text: t('a_excess0', { days: S.excessCoverDays }) }));
+    else {
+      const a = SGCore.answer('excess', R);
+      c.appendChild(el('p', { text: t('a_excess', { days: S.excessCoverDays, count: nf0.format(a.count), value: num(a.value) }) }));
+      c.appendChild(reportTable([t('c_sku'), t('c_cls'), t('c_onHand'), t('c_coverDays'), t('k_excessUnits'), t('k_excessValue')],
+        excess.slice(0, 5).map(r => [name(r), (r.abc || '') + (r.xyz || ''), num(r.onHand), num(r.coverDays), num(r.excessUnits), num(r.excessValue)])));
+    }
+
+    if (C && C.usable) {
+      c.appendChild(el('h3', { text: t('rp_since') }));
+      c.appendChild(el('p', { class: 'sg-hint', text: t('since_sub', { a: C.from, b: C.to, n: C.days }) }));
+      c.appendChild(el('div', { class: 'sg-tiles' }, sinceTiles(C).map(x => tile(x[0], x[1], x[2]))));
+      c.appendChild(el('div', { class: 'sg-table-wrap' }, [sinceTable(C, 5)]));
+      c.appendChild(el('p', { class: 'sg-hint', text: t('sc_note') }));
+    }
+
+    c.appendChild(el('h3', { text: t('rp_data') }));
+    const warn = [...document.querySelectorAll('#readNotes p')].map(n => n.textContent);
+    c.appendChild(list(warn));
+
+    c.appendChild(el('h3', { text: t('x_assumptions') }));
+    c.appendChild(el('p', { class: 'sg-small', text: [t('x_lead', { n: S.leadTimeDays }), t('x_leadSd', { n: S.leadTimeSdDays }), t('x_review', { n: S.reviewPeriodDays }),
+      t('x_cap', { n: S.coverCapDays }), t('x_excess', { n: S.excessCoverDays }), t(S.fillZeros ? 'x_fill' : 'x_nofill'),
+      S.limit.maxValue === null ? t('x_nolimit') : t('x_limit', { c: S.limit.classes.join(' '), v: num(S.limit.maxValue) })].join(' · ') + '.' }));
+    c.appendChild(el('p', { class: 'sg-rp-foot', text: t('rp_foot', { d: new Date().toISOString().slice(0, 10) }) }));
+
+    $('report').classList.remove('sg-hidden');
+    document.body.classList.add('sg-report-open');
+    $('reportClose').focus();
+  }
+  function closeReport() { $('report').classList.add('sg-hidden'); document.body.classList.remove('sg-report-open'); }
 
   function ask(q) {
     const a = SGCore.answer(q, state.results);
@@ -773,6 +1003,12 @@
   $('exportBtn').addEventListener('click', exportCsv);
   $('recordsBtn').addEventListener('click', exportRecords);
   $('printBtn').addEventListener('click', () => window.print());
+  $('workspaceFile').addEventListener('change', e => { const f = e.target.files[0]; if (f) loadWorkspace(f); e.target.value = ''; });
+  $('workspaceBtn').addEventListener('click', saveWorkspace);
+  $('reportBtn').addEventListener('click', openReport);
+  $('reportClose').addEventListener('click', closeReport);
+  $('reportPrint').addEventListener('click', () => window.print());
+  $('reportTitle').addEventListener('input', () => { const h = $('reportHeading'); if (h) h.textContent = $('reportTitle').value.trim() || t('rp_title'); });
   $('drawerClose').addEventListener('click', closeDetail);
   $('drawer').addEventListener('click', e => { if (e.target === $('drawer')) closeDetail(); });
   $('tourBtn').addEventListener('click', () => tourShow(0));
@@ -781,6 +1017,6 @@
   $('tourClose').addEventListener('click', () => tourShow(-1));
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
-    if (state.tour >= 0) tourShow(-1); else closeDetail();
+    if (state.tour >= 0) tourShow(-1); else if (!$('report').classList.contains('sg-hidden')) closeReport(); else closeDetail();
   });
 })();

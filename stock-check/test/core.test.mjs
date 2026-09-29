@@ -150,5 +150,39 @@ const out = SGCore.run(input, SimonEngine, SGParse);
   console.log('records:', recs.length, '| schema validation', validated);
 }
 
+// 10. a second run is compared with the first one, as saved in the workspace
+{
+  const long = SGSample.generate({ days: 395, end: '2026-09-30' });
+  const head = long.moves[0];
+  const first = long.moves.slice(1).filter(r => r[0] <= '2026-08-31');
+  const mk = (rows, previous) => SGCore.run({ moves: { rows: [head].concat(rows), map: moveMap, dec: '.', dateOrder: 'DMY', roles, flipSign: false }, opening: null,
+    products: { rows: long.products, map: prodMap, dec: '.' }, settings, previous }, SimonEngine, SGParse);
+  const run1 = mk(first, null);
+  const snap = JSON.parse(JSON.stringify(SGCore.snapshot(run1.results, run1, settings)));
+  ok('snapshot: one row per product, with a forecast', snap.rows.length === run1.results.length && snap.rows.every(r => Array.isArray(r.fc) && r.fc.length >= 30));
+  ok('first run: nothing to compare', run1.results.every(r => r.since === null));
+  const run2 = mk(long.moves.slice(1), { asOf: snap.asOf });
+  const c = SGCore.compare(snap, run2.results, run2);
+  ok('compare: 30 days', c.usable && c.days === 30 && c.from === '2026-08-31' && c.to === '2026-09-30', [c.from, c.to, c.days]);
+  // sold since, counted by hand from the rows
+  const p = c.rows[0];
+  const byHand = long.moves.slice(1).filter(r => r[1] === p.sku && r[0] > '2026-08-31').reduce((a, r) => {
+    if (r[3] === 'sale') a.sold += r[4]; else if (r[3] === 'return') a.sold -= r[4]; else if (r[3] === 'receipt') a.recv += r[4];
+    return a;
+  }, { sold: 0, recv: 0 });
+  ok('compare: receipts match the rows', Math.abs(p.received - byHand.recv) < 1e-6, [p.received, byHand.recv]);
+  // a day with more returns than sales counts as zero, so the figure can only be at or above sales less returns
+  ok('compare: sales match the rows', p.sold >= byHand.sold - 1e-6 && p.sold <= byHand.sold * 1.05 + 1, [p.sold, byHand.sold]);
+  const s0 = snap.rows.find(r => r.key === p.key);
+  ok('compare: forecast is the saved one, over 30 days', Math.abs(p.forecast - s0.fc.slice(0, 30).reduce((a, b) => a + b, 0)) < 1e-6);
+  const t = c.totals;
+  ok('compare: every proposal has a verdict', t.proposals === snap.rows.filter(r => r.orderQty > 0).length && t.followed + t.partly + t.notFollowed + t.notDue === t.proposals, t);
+  ok('compare: error is measured', typeof t.error === 'number' && t.error > 0 && t.error < 2, t.error);
+  ok('compare: same date is said', SGCore.compare(snap, run1.results, run1).reason === 'same');
+  ok('compare: older file is said', SGCore.compare(SGCore.snapshot(run2.results, run2, settings), run1.results, run1).reason === 'older');
+  console.log('compare:', t.products, 'products; forecast', Math.round(t.forecast), 'sold', Math.round(t.sold), 'error', (t.error * 100).toFixed(0) + '%;',
+    'proposals', t.proposals, 'followed', t.followed, 'partly', t.partly, 'not', t.notFollowed, 'not due', t.notDue, 'ran out', t.notFollowedEmpty);
+}
+
 console.log(pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

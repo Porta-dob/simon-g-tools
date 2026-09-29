@@ -71,12 +71,12 @@
       if (d > lastDay) lastDay = d;
       if (d < firstDay) firstDay = d;
       const s = get(key);
-      const c = s.days.get(d) || { demand: 0, flow: 0, stockout: false, sold: false };
+      const c = s.days.get(d) || { demand: 0, flow: 0, received: 0, stockout: false, sold: false };
       if (role === 'sale') {
         const q = src.flipSign ? -raw : raw;
         c.demand += q; c.flow -= q; c.sold = true;
       } else if (role === 'return') { c.demand -= Math.abs(raw); c.flow += Math.abs(raw); c.sold = true; }
-      else if (role === 'receipt') c.flow += Math.abs(raw);
+      else if (role === 'receipt') { c.flow += Math.abs(raw); c.received += Math.abs(raw); }
       else if (role === 'adjust') c.flow += raw;
       if (map.stockout >= 0 && /^(1|true|yes|y|da|x)$/i.test(cell(r, map.stockout))) c.stockout = true;
       s.days.set(d, c);
@@ -224,6 +224,7 @@
     const products = readProducts(input.products, P);
     if (series.size === 0 || lastDay === -Infinity) return { error: 'noRows', counts };
     const asOf = dayIso(lastDay);
+    const prevDay = input.previous && /^\d{4}-\d{2}-\d{2}$/.test(String(input.previous.asOf)) ? dayNum(input.previous.asOf) : null;
 
     const keys = [...series.keys()];
     const productFor = k => products.get(k) || products.get(k.split(SEP)[0] + SEP) || null;
@@ -266,6 +267,17 @@
       const fcMean = fcDaily.length > 0 ? fcDaily.reduce((a, b) => a + b, 0) / fcDaily.length : null;
 
       const week = weeklyError(r.forecast);
+      // what happened since the run saved in the workspace
+      let since = null;
+      if (prevDay !== null && lastDay > prevDay) {
+        let sold = 0, received = 0, emptyDays = 0;
+        for (let d = prevDay + 1; d <= lastDay; d++) {
+          const c = s.days.get(d);
+          if (c) { sold += Math.max(0, c.demand); received += c.received; }
+          if (stock !== null && stock.onHand.has(d) && stock.onHand.get(d) <= 0) emptyDays++;
+        }
+        since = { days: lastDay - prevDay, sold: Math.round(sold * 100) / 100, received: Math.round(received * 100) / 100, emptyDays };
+      }
       const fileStock = p && typeof p.onHand === 'number';
       const onHand = fileStock ? p.onHand : (stock !== null ? stock.current : null);
       const stockWeekly = stock === null ? [] : weekly([...stock.onHand.entries()].filter(e => e[0] > lastDay - 728).map(e => ({ day: e[0], qty: e[1] })))
@@ -277,6 +289,7 @@
         state: r.state, reason: r.reason,
         historyDays: history.length, firstDate: history[0].date, lastDate: history[history.length - 1].date,
         meanDaily: r.demandMeanDaily, fc30: periods.length > 0 ? fc30 : null, fcMeanDaily: fcMean,
+        fcStart: periods.length > 0 ? periods[0].date : null, fcDaily: fcDaily.slice(0, 120).map(v => Math.round(v * 100) / 100), since,
         method: r.forecast.method, forecastState: r.forecast.state,
         wmape: r.forecast.accuracy.wmape, baselineWmape: r.forecast.accuracy.baselineWmape,
         wmapeWeek: week ? week.value : null, weekBlocks: week ? week.blocks : 0,
@@ -391,6 +404,76 @@
     return null;
   }
 
+  /** What the workspace file keeps of a run: enough to compare the next run against it. */
+  function snapshot(results, meta, settings) {
+    const r2 = v => (typeof v === 'number' && Number.isFinite(v) ? Math.round(v * 100) / 100 : null);
+    return {
+      asOf: meta.asOf, excessCoverDays: settings.excessCoverDays,
+      rows: results.map(r => ({
+        key: r.key, sku: r.sku, loc: r.loc, status: r.status, abc: r.abc, leadTime: r2(r.leadTime),
+        fcStart: r.fcStart, fc: r.fcDaily,
+        onHand: r2(r.onHand), onOrder: r2(r.onOrder),
+        orderQty: r.order && r.order.qty > 0 ? r.order.qty : 0, orderValue: r.order ? r2(r.order.value) : null,
+        within: r.limit ? r.limit.within : null, stockValue: r2(r.stockValue), excessValue: r2(r.excessValue),
+      })),
+    };
+  }
+
+  /** The saved run against what happened since: forecast against sales, proposals against receipts.
+   *  The page sees receipts, not orders. A receipt beyond what was already on order counts towards the proposal. */
+  function compare(prev, results, meta) {
+    if (!prev || !/^\d{4}-\d{2}-\d{2}$/.test(String(prev.asOf)) || !Array.isArray(prev.rows)) return null;
+    const num = v => typeof v === 'number' && Number.isFinite(v);
+    const days = dayNum(meta.asOf) - dayNum(prev.asOf);
+    const base = { from: prev.asOf, to: meta.asOf, days };
+    if (!(days > 0)) return Object.assign(base, { usable: false, reason: days === 0 ? 'same' : 'older' });
+    const now = new Map(results.map(r => [r.key, r]));
+    const seen = new Set();
+    const rows = [];
+    const t = {
+      products: 0, forecast: 0, sold: 0, absError: 0, measured: 0, proposals: 0, followed: 0, partly: 0, notFollowed: 0, notDue: 0,
+      notFollowedEmpty: 0, gone: 0, fresh: 0, stockBefore: 0, stockNow: 0, excessBefore: 0, excessNow: 0, valued: false,
+    };
+    for (const p of prev.rows) {
+      seen.add(p.key);
+      const r = now.get(p.key);
+      if (!r || !r.since) { t.gone++; continue; }
+      t.products++;
+      let forecast = null;
+      if (Array.isArray(p.fc) && p.fcStart) {
+        const off = dayNum(prev.asOf) + 1 - dayNum(p.fcStart);
+        if (off >= 0 && p.fc.length >= off + days) forecast = p.fc.slice(off, off + days).reduce((a, b) => a + b, 0);
+      }
+      const row = {
+        key: p.key, sku: p.sku, loc: p.loc, abc: r.abc, forecast, sold: r.since.sold, diff: null, emptyDays: r.since.emptyDays,
+        proposed: p.orderQty || 0, received: r.since.received, followed: null,
+      };
+      if (forecast !== null) {
+        row.diff = r.since.sold - forecast;
+        t.forecast += forecast; t.sold += r.since.sold; t.absError += Math.abs(row.diff); t.measured++;
+      }
+      if (row.proposed > 0) {
+        t.proposals++;
+        const extra = Math.max(0, r.since.received - (num(p.onOrder) ? p.onOrder : 0));
+        if (extra >= 0.8 * row.proposed) { row.followed = 'yes'; t.followed++; }
+        else if (extra > 0) { row.followed = 'partly'; t.partly++; }
+        else if (days < Math.ceil(num(p.leadTime) ? p.leadTime : 0)) { row.followed = 'not_due'; t.notDue++; }
+        else { row.followed = 'no'; t.notFollowed++; if (r.since.emptyDays > 0) t.notFollowedEmpty++; }
+      }
+      if (num(p.stockValue)) { t.stockBefore += p.stockValue; t.valued = true; }
+      if (num(p.excessValue)) t.excessBefore += p.excessValue;
+      rows.push(row);
+    }
+    for (const r of results) {
+      if (!seen.has(r.key)) t.fresh++;
+      if (num(r.stockValue)) t.stockNow += r.stockValue;
+      if (num(r.excessValue)) t.excessNow += r.excessValue;
+    }
+    t.error = t.measured > 0 && t.sold > 0 ? t.absError / t.sold : null;
+    t.bias = t.measured > 0 && t.sold > 0 ? (t.forecast - t.sold) / t.sold : null;
+    return Object.assign(base, { usable: true, forecastCovered: t.measured > 0, rows, totals: t });
+  }
+
   const PLAIN = {
     orderWeekdays: 'fixed order days', minOrderValue: 'supplier minimum order value', priceBreaks: 'price breaks',
     forecastErrorSdOverProtection: 'measured forecast error', reserved: 'reserved stock', moqUnits: 'minimum order quantity',
@@ -435,5 +518,5 @@
     return out;
   }
 
-  root.SGCore = { run, answer, decisionRecords, guessRole, ROLES, SEP };
+  root.SGCore = { run, answer, decisionRecords, snapshot, compare, guessRole, ROLES, SEP };
 })(typeof self !== 'undefined' ? self : globalThis);

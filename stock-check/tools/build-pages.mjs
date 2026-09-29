@@ -7,7 +7,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SITE = 'https://groma.ro';
 const URLS = { ro: '/simon-g/verificare-stoc', en: '/en/simon-g/stock-check' };
 const version = JSON.parse(fs.readFileSync(path.join(root, 'app', 'engine.version.json'), 'utf8'));
-const RELEASE = '4';
+const RELEASE = '5';
 const stamp = version.built.replace(/-/g, '') + '-' + RELEASE;
 const TPL = '/simon-g/template/';
 
@@ -27,6 +27,9 @@ const TEXT = {
     s1: 'Opening stock and transactions',
     s1hint: 'An Excel or CSV file with one row per movement: date, product, type and quantity. The types are sale, receipt, return and adjustment. The opening stock is a sheet of its own, or rows of type "opening".',
     chooseMoves: 'Choose your file', sample: 'Try with sample data',
+    wsH: 'Used it before?', wsHint: 'Load the workspace file you saved last time, then your new export. Your columns and assumptions come back, and the results are compared with the last run.',
+    wsLoad: 'Load your workspace file', wsSave: 'Save workspace', report: 'Management report',
+    rpTitleLabel: 'Title on the report', rpPrint: 'Print or save as PDF', rpHint: 'To keep it as a file, choose "Save as PDF" in the print window.',
     tplH: 'Download the template',
     tplHint: 'The template holds a year of invented data. Load it to see the result, then replace the rows with your own. You may keep your own column names.',
     tplXlsx: 'Excel workbook: transactions, opening stock, products', tplCsv1: 'CSV: transactions with opening stock', tplCsv2: 'CSV: products',
@@ -74,6 +77,7 @@ const TEXT = {
       ['What file do I need?', 'The opening stock and the transactions of at least three months, preferably one to two years, as Excel (.xlsx) or CSV. A stock ledger exported from your own system works with its own column names: the page shows which column it took for what, and lets you say what each transaction type means.'],
       ['Why does it need the opening stock?', 'With the opening stock and every movement since, the stock of each day is known. That gives today\'s stock for the order proposal, and it shows the days when a product was out of stock, which would otherwise look like days without demand.'],
       ['How is the forecast made?', 'For each product several methods are tested on past dates they had not seen. A more complex method is used only if it beats a plain moving average by a clear margin.'],
+      ['Can I use it every month?', 'Yes. After a run, save the workspace file. It holds your column choices, your assumptions and the results, and it stays on your computer. Next month load it together with the new export: the page shows what was forecast against what sold, and which proposals were followed.'],
       ['Does it decide what I order?', 'No. It proposes and shows its reasoning. A person decides, and your approval limit says which person.'],
       ['Is there an AI assistant?', 'There are six fixed questions, answered by arithmetic on your results. No language model reads your data, and the same results always give the same answer.'],
       ['What does it cost?', 'The Stock Check is free. Simon G., the platform that runs the same calculation every night with approvals and a record of decisions, is a paid product installed on your own infrastructure.'],
@@ -98,6 +102,9 @@ const TEXT = {
     s1: 'Stoc inițial și tranzacții',
     s1hint: 'Un fișier Excel sau CSV cu un rând pe mișcare: data, produsul, tipul și cantitatea. Tipurile sunt vânzare, recepție, retur și ajustare. Stocul inițial stă pe o foaie separată sau în rânduri de tip „opening”.',
     chooseMoves: 'Alegeți fișierul', sample: 'Încercați cu date de probă',
+    wsH: 'L-ați mai folosit?', wsHint: 'Încărcați fișierul de lucru salvat data trecută, apoi noul export. Coloanele și ipotezele revin, iar rezultatele sunt comparate cu ultima rulare.',
+    wsLoad: 'Încărcați fișierul de lucru', wsSave: 'Salvați fișierul de lucru', report: 'Raport pentru conducere',
+    rpTitleLabel: 'Titlul de pe raport', rpPrint: 'Tipăriți sau salvați ca PDF', rpHint: 'Ca să îl păstrați ca fișier, alegeți „Salvare ca PDF” în fereastra de tipărire.',
     tplH: 'Descărcați modelul',
     tplHint: 'Modelul conține un an de date inventate. Încărcați-l ca să vedeți rezultatul, apoi înlocuiți rândurile cu ale dumneavoastră. Puteți păstra numele de coloane din sistemul dumneavoastră.',
     tplXlsx: 'Fișier Excel: tranzacții, stoc inițial, produse', tplCsv1: 'CSV: tranzacții cu stoc inițial', tplCsv2: 'CSV: produse',
@@ -145,6 +152,7 @@ const TEXT = {
       ['Ce fișier îmi trebuie?', 'Stocul inițial și tranzacțiile pe cel puțin trei luni, de preferat unul-doi ani, în format Excel (.xlsx) sau CSV. O fișă de magazie exportată din sistemul dumneavoastră merge cu numele ei de coloane: pagina arată ce coloană a luat pentru ce și vă lasă să spuneți ce înseamnă fiecare tip de tranzacție.'],
       ['De ce este nevoie de stocul inițial?', 'Cu stocul inițial și cu toate mișcările de atunci, se cunoaște stocul fiecărei zile. De aici vine stocul de astăzi, folosit la propunerea de comandă, și tot de aici se văd zilele în care un produs a lipsit, care altfel ar părea zile fără cerere.'],
       ['Cum se face prognoza?', 'Pentru fiecare produs se încearcă mai multe metode pe date din trecut pe care metoda nu le-a văzut. O metodă mai complexă este folosită numai dacă bate clar o medie mobilă simplă.'],
+      ['Îl pot folosi în fiecare lună?', 'Da. După o rulare, salvați fișierul de lucru. El conține coloanele alese, ipotezele și rezultatele și rămâne pe calculatorul dumneavoastră. Luna viitoare încărcați-l împreună cu noul export: pagina arată ce s-a prognozat față de ce s-a vândut și ce propuneri au fost urmate.'],
       ['Hotărăște ea ce comand?', 'Nu. Propune și își arată raționamentul. Hotărăște un om, iar limita de aprobare spune care.'],
       ['Există un asistent AI?', 'Există șase întrebări fixe, cu răspunsul calculat din rezultatele dumneavoastră. Niciun model de limbaj nu vă citește datele, iar aceleași rezultate dau de fiecare dată același răspuns.'],
       ['Cât costă?', 'Verificarea de stoc este gratuită. Simon G., platforma care face același calcul în fiecare noapte, cu aprobări și cu evidența deciziilor, este un produs cu plată, instalat pe infrastructura dumneavoastră.'],
@@ -237,6 +245,15 @@ ${x.nav.map(([h, l]) => `      <a href="${h}">${esc(l)}</a>`).join('\n')}
     </div>
   </section>
 
+  <section class="sg-ws" id="step-workspace">
+    <p><strong>${esc(x.wsH)}</strong> ${esc(x.wsHint)}</p>
+    <div class="sg-row">
+      <input type="file" id="workspaceFile" accept=".json,application/json" class="sg-file">
+      <label class="sg-btn" for="workspaceFile">${esc(x.wsLoad)}</label>
+      <span class="sg-fname" id="workspaceName" role="status"></span>
+    </div>
+  </section>
+
   <section class="sg-card" id="step-moves">
     <h2><span class="sg-n">1</span> ${esc(x.s1)}</h2>
     <p class="sg-hint">${esc(x.s1hint)}</p>
@@ -315,6 +332,7 @@ ${x.nav.map(([h, l]) => `      <a href="${h}">${esc(l)}</a>`).join('\n')}
     <h2 class="sg-res-title">${esc(x.results)} <span id="asOf" class="sg-muted sg-small"></span></h2>
     <div id="tiles" class="sg-tiles"></div>
     <div id="readNotes" class="sg-notes"></div>
+    <div id="since" class="sg-since sg-hidden"></div>
     <div class="sg-askbox">
       <h3>${esc(x.askH)}</h3>
       <p class="sg-hint">${esc(x.askHint)}</p>
@@ -328,8 +346,11 @@ ${x.nav.map(([h, l]) => `      <a href="${h}">${esc(l)}</a>`).join('\n')}
         <button class="sg-btn" id="exportBtn" type="button">${esc(x.exportBtn)}</button>
         <button class="sg-btn" id="recordsBtn" type="button">${esc(x.recordsBtn)}</button>
         <button class="sg-btn" id="printBtn" type="button">${esc(x.print)}</button>
+        <button class="sg-btn" id="reportBtn" type="button">${esc(x.report)}</button>
+        <button class="sg-btn solid" id="workspaceBtn" type="button">${esc(x.wsSave)}</button>
       </span>
     </div>
+    <p class="sg-hint" id="workspaceSaved" role="status"></p>
     <div class="sg-table-wrap"><table id="table" class="sg-data"></table></div>
     <p class="sg-muted sg-small" id="tableNote"></p>
   </section>
@@ -372,6 +393,16 @@ ${x.faq.map(([q, a]) => `    <h3>${esc(q)}</h3>\n    <p>${esc(a)}</p>`).join('\n
     <button class="sg-close" id="drawerClose" type="button" aria-label="${esc(x.close)}">×</button>
     <div id="drawerContent"></div>
   </div>
+</div>
+
+<div id="report" class="sg sg-report sg-hidden" role="dialog" aria-modal="true" aria-labelledby="reportHeading">
+  <div class="sg-report-bar">
+    <label>${esc(x.rpTitleLabel)}<input type="text" id="reportTitle" maxlength="80" autocomplete="off"></label>
+    <button class="sg-btn solid" id="reportPrint" type="button">${esc(x.rpPrint)}</button>
+    <button class="sg-btn" id="reportClose" type="button">${esc(x.close)}</button>
+    <span class="sg-hint">${esc(x.rpHint)}</span>
+  </div>
+  <div class="sg-report-sheet" id="reportSheet"></div>
 </div>
 
 <div id="tour" class="sg sg-tour sg-hidden" role="region" aria-live="polite" aria-label="${esc(x.tour)}">
