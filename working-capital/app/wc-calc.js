@@ -83,7 +83,8 @@
     const stockDays = (stock !== null && stockDenom !== null && stockDenom !== 0) ? (stock / stockDenom) * 365 : null;
     const receivableDays = (receivables !== null && revenue !== null && revenue !== 0) ? (receivables / revenue) * 365 : null;
     const payableDays = (payables !== null && payableDenom !== null && payableDenom !== 0) ? (payables / payableDenom) * 365 : null;
-    const ccc = (stockDays !== null && receivableDays !== null && payableDays !== null) ? stockDays + receivableDays - payableDays : null;
+    // the cycle is the sum of the whole-day figures shown on the page, so that the reader can add them up
+    const ccc = (stockDays !== null && receivableDays !== null && payableDays !== null) ? Math.round(stockDays) + Math.round(receivableDays) - Math.round(payableDays) : null;
     const margin = (netProfit !== null && revenue !== null && revenue !== 0) ? (netProfit / revenue) * 100 : null;
 
     const dayValueStock = stockDenom !== null ? stockDenom / 365 : null;

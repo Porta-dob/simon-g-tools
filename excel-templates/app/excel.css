@@ -1,0 +1,12 @@
+/* Simon G. Excel template pages. Built on the site's styles and the product page's. */
+.xl-note { font-size: 14px; color: var(--ink-soft); margin-top: 14px; max-width: 760px; }
+.xl-note a { color: var(--cobalt); text-underline-offset: 3px; }
+.xl-formulas { margin: 18px 0 0; max-width: 860px; }
+.xl-formulas dt { font-family: var(--font-display); font-weight: 600; font-size: 17px; margin-top: 22px; }
+.xl-formulas dd { margin: 6px 0 0; }
+.xl-formulas code { display: block; font-family: var(--font-mono); font-size: 14px; line-height: 1.5; padding: 10px 14px; background: #fff; border: 1px solid rgba(19, 26, 39, 0.14); border-left: 4px solid var(--cobalt); overflow-wrap: anywhere; }
+.xl-formulas p { font-size: 16px; color: var(--ink-soft); margin: 8px 0 0; }
+.xl-table th { text-align: left; white-space: nowrap; padding-right: 24px; font-weight: 600; }
+.xl-table td { font-family: var(--font-mono); font-size: 14px; }
+.section .cta-row { margin-top: 18px; }
+@media (max-width: 640px) { .xl-table th { white-space: normal; } }

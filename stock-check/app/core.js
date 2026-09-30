@@ -371,7 +371,7 @@
       const a = results.filter(r => r.status === 'order');
       const urgent = a.filter(r => num(r.coverDays) && r.coverDays < r.leadTime);
       return { id, count: a.length, value: sum(a, r => r.order.value), urgent: urgent.length,
-        rows: a.slice().sort((x, y) => (x.coverDays - x.leadTime) - (y.coverDays - y.leadTime)).slice(0, 5).map(r => r.key), status: 'order', sort: ['coverDays', 1] };
+        rows: a.slice().sort((x, y) => (x.coverDays - x.leadTime) - (y.coverDays - y.leadTime)).slice(0, 5).map(r => r.key), status: 'order', sort: ['urgency', 1] };
     }
     if (id === 'cash') {
       const a = results.filter(r => num(r.stockValue));

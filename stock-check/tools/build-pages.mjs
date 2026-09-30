@@ -7,7 +7,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SITE = 'https://groma.ro';
 const URLS = { ro: '/simon-g/verificare-stoc', en: '/en/simon-g/stock-check' };
 const version = JSON.parse(fs.readFileSync(path.join(root, 'app', 'engine.version.json'), 'utf8'));
-const RELEASE = '5';
+const RELEASE = '6';
 const stamp = version.built.replace(/-/g, '') + '-' + RELEASE;
 const TPL = '/simon-g/template/';
 

@@ -278,6 +278,8 @@
       + (c.badPaymentDate ? t('badPaymentDate', { n: nf0.format(c.badPaymentDate) }) : ''));
     const insufficient = R.filter(r => !r.sufficientHistory).length;
     if (insufficient) line(t('insufficientNote', { n: nf0.format(insufficient) }));
+    const stale = R.filter(r => r.oldestOverdueDays > 90).length;
+    if (stale) line(t('staleNote', { n: nf0.format(stale) }));
     line(t('assumeIncident'));
     line(t('assumeRelation'));
 
@@ -417,6 +419,7 @@
       [t('k_invoiceCount'), num(r.invoiceCount)], [t('k_overdue'), num(r.overdueAmount)],
       [t('k_relation'), nf1.format(r.relationYears)], [t('k_annualPurchases'), num(r.annualPurchases)],
     ].map(([k, v]) => el('div', null, [el('div', { class: 'k', text: k }), el('div', { class: 'v', text: v })]))));
+    if (r.oldestOverdueDays > 90) c.appendChild(el('p', { class: 'sg-warn', text: t('staleDetail', { n: nf0.format(r.oldestOverdueDays), v: num(r.overdueAmount) }) }));
     if (r.annualized) c.appendChild(el('p', { class: 'sg-muted sg-small', text: t('annualizedNote') }));
 
     c.appendChild(el('h4', { text: t('d_invoices') }));

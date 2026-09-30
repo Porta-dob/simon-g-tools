@@ -7,7 +7,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SITE = 'https://groma.ro';
 const URLS = { ro: '/simon-g/verificare-credit', en: '/en/simon-g/credit-check' };
 const version = JSON.parse(fs.readFileSync(path.join(root, 'app', 'credit-engine.version.json'), 'utf8'));
-const stamp = version.built.replace(/-/g, '') + 'c';
+const stamp = version.built.replace(/-/g, '') + 'd';
 
 const TEXT = {
   en: {

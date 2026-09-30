@@ -83,8 +83,9 @@
   function changeLine(delta, moneyDelta) {
     if (delta === null) return '';
     if (delta === 0) return t('changeFlat');
-    if (moneyDelta === null || moneyDelta === undefined) return t(delta > 0 ? 'changeUpDays' : 'changeDownDays', { n: fmt(Math.abs(delta)) });
-    return t(delta > 0 ? 'changeUp' : 'changeDown', { n: fmt(Math.abs(delta)), v: money(Math.abs(moneyDelta)) });
+    const one = s => (Math.abs(delta) === 1 ? s.replace(' days', ' day').replace(' zile', ' zi') : s);
+    if (moneyDelta === null || moneyDelta === undefined) return one(t(delta > 0 ? 'changeUpDays' : 'changeDownDays', { n: fmt(Math.abs(delta)) }));
+    return one(t(delta > 0 ? 'changeUp' : 'changeDown', { n: fmt(Math.abs(delta)), v: money(Math.abs(moneyDelta)) }));
   }
 
   function denomNote(used) { return t(used === 'cogs' ? 'onCogs' : 'onRevenue'); }

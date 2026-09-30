@@ -93,7 +93,8 @@ test('the cash conversion cycle appears only once payables are given', () => {
     y1: { revenue: 1100000, stock: 120000, receivables: 60000, payables: 45000 },
   });
   assert.notEqual(withPayables.y1.ccc, null);
-  close(withPayables.y1.ccc, withPayables.y1.stockDays + withPayables.y1.receivableDays - withPayables.y1.payableDays, 1e-9);
+  // the cycle is the sum of the whole-day figures the page shows
+  close(withPayables.y1.ccc, Math.round(withPayables.y1.stockDays) + Math.round(withPayables.y1.receivableDays) - Math.round(withPayables.y1.payableDays), 1e-9);
 });
 
 // ---------------------------------------------------------------- missing, zero, negative

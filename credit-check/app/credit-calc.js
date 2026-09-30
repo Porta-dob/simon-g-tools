@@ -85,10 +85,15 @@
       return { amount: inv.amount, dbt, paidFull, monthsAgo };
     });
 
-    let overdueAmount = 0;
+    // The scorecard is built on invoices already paid. An invoice still unpaid long after its due date
+    // is therefore not in the score; the page says so next to the score.
+    let overdueAmount = 0, oldestOverdueDays = 0;
     for (const inv of open) {
       const outstanding = inv.amount - (inv.amountPaid || 0);
-      if (outstanding > 0 && dayNum(inv.dueDate) < asOfDay) overdueAmount += outstanding;
+      if (outstanding > 0 && dayNum(inv.dueDate) < asOfDay) {
+        overdueAmount += outstanding;
+        oldestOverdueDays = Math.max(oldestOverdueDays, asOfDay - dayNum(inv.dueDate));
+      }
     }
 
     const firstInvoiceDay = invoices.reduce((min, inv) => Math.min(min, dayNum(inv.invoiceDate)), Infinity);
@@ -133,7 +138,7 @@
     return {
       customer, invoiceCount: invoices.length, settledCount: settled.length, openCount: open.length,
       sufficientHistory, relationYears: +relationYears.toFixed(1), annualPurchases: +annualPurchases.toFixed(2), annualized,
-      overdueAmount: +overdueAmount.toFixed(2), incidentMonthsAgo, insolvencyActive,
+      overdueAmount: +overdueAmount.toFixed(2), oldestOverdueDays, incidentMonthsAgo, insolvencyActive,
       scorecard, weightedDbtNumerator, settledAmount,
       invoices: invoiceRows,
     };

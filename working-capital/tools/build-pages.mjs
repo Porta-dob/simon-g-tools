@@ -8,7 +8,7 @@ const SITE = 'https://groma.ro';
 const URLS = { ro: '/simon-g/capital-de-lucru', en: '/en/simon-g/working-capital' };
 const STOCK_CHECK = { ro: '/simon-g/verificare-stoc', en: '/en/simon-g/stock-check' };
 const SIMON_G = { ro: '/simon-g', en: '/en/simon-g' };
-const stamp = '20260928a';
+const stamp = '20261001a';
 
 const FIELDS = ['revenue', 'cogs', 'stock', 'receivables', 'payables', 'netProfit'];
 const OPTIONAL = { revenue: false, cogs: true, stock: false, receivables: false, payables: true, netProfit: true };

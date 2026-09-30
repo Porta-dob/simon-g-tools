@@ -114,9 +114,13 @@
     for (const s of sheets) { const k = kindOf(s); if (k && !found[k]) found[k] = s; }
     if (!found.moves && sheets.length === 1 && sheets[0].rows.length >= 2) found.moves = sheets[0];
     if (!found.moves) { say(t('foundNone')); return; }
+    // what an earlier workbook brought with it does not carry over to this one
+    [['opening', 'openingName', 'openingMap'], ['products', 'productsName', 'productsMap']].forEach(([k, nameId, mapId]) => {
+      if (state[k] && state[k].fromMain) { state[k] = null; $(nameId).textContent = ''; $(mapId).classList.add('sg-hidden'); }
+    });
     setMoves(found.moves, fileName);
-    if (found.opening) setOpening(found.opening, fileName + ' · ' + found.opening.name);
-    if (found.products) setProducts(found.products, fileName + ' · ' + found.products.name);
+    if (found.opening) { setOpening(found.opening, fileName + ' · ' + found.opening.name); if (state.opening) state.opening.fromMain = true; }
+    if (found.products) { setProducts(found.products, fileName + ' · ' + found.products.name); if (state.products) state.products.fromMain = true; }
     const parts = [nf0.format(found.moves.rows.length - 1) + ' ' + t('foundMoves')];
     if (found.opening) parts.push(nf0.format(found.opening.rows.length - 1) + ' ' + t('foundOpening'));
     if (found.products) parts.push(nf0.format(found.products.rows.length - 1) + ' ' + t('foundProducts'));
@@ -490,7 +494,7 @@
       tiles.appendChild(tile(t('t_order'), t('t_orderUnit', { n: nf0.format(toOrder.length) }),
         costed ? t('t_orderValue', { v: nf0.format(sum(toOrder, r => r.order && r.order.value)) }) : t('t_orderNoCost')));
       tiles.appendChild(tile(t('t_sign'), nf0.format(inside.length),
-        S.limit.maxValue === null ? t('t_signNone', { n: nf0.format(toOrder.length) }) : t('t_signSub', { n: nf0.format(toOrder.length - inside.length) })));
+        S.limit.maxValue === null ? t('t_signNone', { n: nf0.format(toOrder.length) }) : t(toOrder.length - inside.length === 1 ? 't_signSub1' : 't_signSub', { n: nf0.format(toOrder.length - inside.length) })));
       if (M.stockRebuilt) tiles.appendChild(tile(t('t_ranout'), nf0.format(R.filter(r => r.stock && r.stock.zero90 > 0).length), t('t_ranoutSub')));
       tiles.appendChild(tile(t('t_excess'), costed ? nf0.format(sum(excess, r => r.excessValue)) : t('t_orderUnit', { n: nf0.format(excess.length) }),
         t('t_excessSub', { n: nf0.format(excess.length), d: S.excessCoverDays })));
@@ -714,7 +718,8 @@
   function visibleRows() {
     const q = $('filter').value.trim().toLowerCase();
     const st = $('statusFilter').value;
-    const col = COLS.find(c => c.id === state.sort.col) || COLS[0];
+    const URGENCY = { id: 'urgency', get: r => (isNum(r.coverDays) && isNum(r.leadTime) ? r.coverDays - r.leadTime : null) };
+    const col = state.sort.col === 'urgency' ? URGENCY : (COLS.find(c => c.id === state.sort.col) || COLS[0]);
     const rows = state.results.filter(r => (!q || (r.sku + ' ' + r.loc).toLowerCase().indexOf(q) !== -1) && (!st || r.status === st));
     rows.sort((a, b) => {
       const x = col.get(a), y = col.get(b);
